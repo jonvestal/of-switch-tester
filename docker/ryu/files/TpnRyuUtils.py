@@ -41,14 +41,14 @@ def make_packet(pkt_size):
     return p
 
 
-class PipelineTester(app_manager.RyuApp):
+class TpnRyuUtils(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     _CONTEXTS = {
                 'dpset': dpset.DPSet,
                 'wsgi': WSGIApplication}
 
     def __init__(self, *args, **kwargs):
-        super(PipelineTester, self).__init__(*args, **kwargs)
+        super(TpnRyuUtils, self).__init__(*args, **kwargs)
         self.dpset = kwargs['dpset']
         wsgi = kwargs['wsgi']
         wsgi.register(PipelineTesterController, {pipeline_tester_instance_name: self})
