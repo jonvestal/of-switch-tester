@@ -1,4 +1,4 @@
-import docker.tests.noviflow_flows as novi
+import tests.noviflow_flows as novi
 import base64
 import socket
 import pytest

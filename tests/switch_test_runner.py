@@ -4,6 +4,7 @@ import requests
 import argparse
 import logging
 import time
+import tests.noviflow_flows as novi
 
 OFPP_IN_PORT = 4294967288
 
@@ -166,6 +167,32 @@ def flow_vlan_push_pop(in_port, out_port, action, vid=42, table_id=0, priority=2
     }
     add_flow(flowmod)
 
+
+def flow_vxlan_push_pop(in_port, out_port, action, table_id=0, priority=2000,
+                        src_ip='192.168.0.1', dst_ip='192.168.0.2',
+                        src_mac='112233445566', dst_mac='aabbccddeeff',
+                        udp_port=5000, vni=4242):
+    actions = [{
+        'type': 'OUTPUT',
+        'port': out_port
+    }]
+    if action == 'push':
+        vxlan_action = novi.make_experimenter_action(
+            novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vni))
+    else:
+        vxlan_action = novi.make_experimenter_action(novi.action_payload_vxlan_pop())
+    actions.insert(0, vxlan_action)
+
+    flowmod = {
+        'dpid': args.dpid,
+        'cookie': COOKIE_VLAN,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {'in_port': in_port},
+        'actions': actions
+    }
+    add_flow(flowmod)
+
 def send_packet_out(port, pkt_size, count):
     url = 'http://{}:{}/tpn/packet_out/{}/{}/{}/{}'.format(
         args.hostname, args.port, args.dpid, port, pkt_size, count)
@@ -174,7 +201,8 @@ def send_packet_out(port, pkt_size, count):
 
 
 def switch_at_peak_load():
-    url = "http://10.0.1.43:4242/api/query"
+    logger.debug("Checking if switch at peak load")
+    url = "http://10.0.1.44:4242/api/query"
     payload = {"start": "30s-ago",
                "queries": [{"aggregator": "sum",
                             "metric": "port.bits",
@@ -194,19 +222,19 @@ def switch_at_peak_load():
     dps = sorted(response.json()[0]['dps'].items())
     if len(dps) < 2:
         logger.error("Somehow we only received 1 datapoint from OpenTSDB, %s", dps)
-        return False  #  What the hell try again
+        return False  # What the hell try again
     curr = dps[-1][1]
     prev = dps[-2][1]
 
-    if curr < 1000: #  arbitrary number to make sure we have some packets moving
+    if curr < 1000:  # arbitrary number to make sure we have some packets moving
         return False
 
     growth_rate = abs(curr - prev) / curr * 100
     logger.debug("growth is %f", growth_rate)
 
     if growth_rate == 0:
-        return False #  Hack to deal with fact pushing packets every second but TSDB updated every minute
-                     #  has the risk of never finishing...
+        return False  # Hack to deal with fact pushing packets every second but TSDB updated every minute
+                      # has the risk of never finishing...
 
     return growth_rate < 0.05
 
@@ -217,9 +245,9 @@ def bring_switch_full_load(port, size, sleep=30):
     pkts_sent = 0
     while not done:
         send_packet_out(port, size, 1)
+        pkts_sent += 1
         logger.debug("Injected %i packets per port in total", pkts_sent)
         time.sleep(1)
-        pkts_sent += 1
         done = switch_at_peak_load()
     logger.info("Injected %i packets with size of %i for port %i, tired so gonna sleep for %i seconds",
                 pkts_sent, size, port, sleep)
@@ -268,6 +296,15 @@ def vlan_test(size=9000):
     flow_vlan_push_pop(1, OFPP_IN_PORT, 'push', vid=42)
 
 
+def vxlan_test(size=9000):
+    flow_snake(1, 28, 0)
+    bring_switch_full_load(-1, size)
+
+    logger.info("Switch under full load adding push/pop vxlan rules")
+    flow_vxlan_push_pop(28, OFPP_IN_PORT, 'pop')
+    flow_vxlan_push_pop(1, OFPP_IN_PORT, 'push', vni=4242)
+
+
 def main():
     try:
         for test in args.tests:
@@ -285,11 +322,13 @@ def main():
                     pps_test(size=size, type="snake")
                 elif test == 'vlan':
                     vlan_test(size)
+                elif test == 'vxlan':
+                    vxlan_test(size)
                 time.sleep(120)  # collect data for 2 minutes
     except KeyboardInterrupt:
         pass
-    except Exception:
-        pass
+    except Exception as e:
+        logger.exception(e)
     delete_all_flows()
 
 
@@ -298,8 +337,8 @@ def parsecmdline():
     parser.add_argument('hostname', action='store', help='Name/IP of RYU Controller')
     parser.add_argument('dpid', action='store', help='DPID of Switch to Test')
     parser.add_argument('--port', action='store', default=8080, help='RYU Controller REST port')
-    parser.add_argument('-t', '--tests', nargs='*', choices=['goto_table', 'pps', 'pps-snake', 'vlan'], default='pps',
-                        help='Tests to Run')
+    parser.add_argument('-t', '--tests', nargs='*', choices=['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan'],
+                        default='pps', help='Tests to Run')
     parser.add_argument('-p', '--packet_size', nargs='*', default=9000, type=int, help='List of packet sizes to test')
     return parser.parse_args()
 
