@@ -200,9 +200,9 @@ def send_packet_out(port, pkt_size, count):
     logger.debug("Sending %i packet out to port %i of size %i", count, port, pkt_size)
 
 
-def switch_at_peak_load():
+def switch_at_peak_load(host=opentsdb_host, port=4242):
     logger.debug("Checking if switch at peak load")
-    url = "http://10.0.1.44:4242/api/query"
+    url = "http://{}:{}/api/query".format(host, port)
     payload = {"start": "30s-ago",
                "queries": [{"aggregator": "sum",
                             "metric": "port.bits",
@@ -248,7 +248,7 @@ def bring_switch_full_load(port, size, sleep=30):
         pkts_sent += 1
         logger.debug("Injected %i packets per port in total", pkts_sent)
         time.sleep(1)
-        done = switch_at_peak_load()
+        done = switch_at_peak_load(args.hostname)
     logger.info("Injected %i packets with size of %i for port %i, tired so gonna sleep for %i seconds",
                 pkts_sent, size, port, sleep)
     time.sleep(sleep)
