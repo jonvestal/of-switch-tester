@@ -200,7 +200,7 @@ def send_packet_out(port, pkt_size, count):
     logger.debug("Sending %i packet out to port %i of size %i", count, port, pkt_size)
 
 
-def switch_at_peak_load(host=opentsdb_host, port=4242):
+def switch_at_peak_load(host, port=4242):
     logger.debug("Checking if switch at peak load")
     url = "http://{}:{}/api/query".format(host, port)
     payload = {"start": "30s-ago",
