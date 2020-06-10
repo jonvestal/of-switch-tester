@@ -33,7 +33,7 @@ def make_experimenter_action(data, data_type='base64'):
     }
 
 
-def action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vni):
+def action_payload_vxlan_push(src_ip=None, dst_ip=None, src_mac=None, dst_mac=None, udp_port=None, vni=None):
     """
     Returns an RYU action that will create a vxlan_push action for Noviflow.
         novi_action_type: 0x0002
@@ -56,7 +56,11 @@ def action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vni):
     """
     action_type = '0002'
     tunnel_type = '00'
-    flags = "01"
+
+    if src_ip is None:
+        flags = '00'
+    else:
+        flags = "01"
 
     if udp_port < 0 or udp_port > 65536:
         raise ValueError("UDP port needs to be between 0 and 65536")
@@ -64,13 +68,15 @@ def action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vni):
     if vni < 0 or vni > 4294967295:
         raise ValueError("VIN needs to be between 0 and 429467295")
 
-    return make_base64("{}{}{}{}{}{}{}{}{}{}{}".format(NOVIFLOW_CUSTOMER, NOVIFLOW_RESERVE,
-                                                       action_type, tunnel_type, flags,
-                                                       src_mac, dst_mac,
-                                                       socket.inet_aton(src_ip).hex(),
-                                                       socket.inet_aton(dst_ip).hex(),
-                                                       "{:0{}x}".format(udp_port, 8),
-                                                       "{:0{}x}".format(vni, 16)))
+    if flags == '01':
+        return make_base64("{}{}{}{}{}{}{}{}{}{}{}".format(NOVIFLOW_CUSTOMER, NOVIFLOW_RESERVE,
+                                                           action_type, tunnel_type, flags,
+                                                           src_mac, dst_mac,
+                                                           socket.inet_aton(src_ip).hex(),
+                                                           socket.inet_aton(dst_ip).hex(),
+                                                           "{:0{}x}".format(udp_port, 8),
+                                                           "{:0{}x}".format(vni, 16)))
+    return make_base64("{}{}{}{}000000", NOVIFLOW_CUSTOMER, NOVIFLOW_RESERVE, action_type, tunnel_type, flags)
 
 
 def action_payload_vxlan_pop():

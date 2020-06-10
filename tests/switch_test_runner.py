@@ -171,17 +171,22 @@ def flow_vlan_push_pop(in_port, out_port, action, vid=42, table_id=0, priority=2
 def flow_vxlan_push_pop(in_port, out_port, action, table_id=0, priority=2000,
                         src_ip='192.168.0.1', dst_ip='192.168.0.2',
                         src_mac='112233445566', dst_mac='aabbccddeeff',
-                        udp_port=5000, vni=4242):
+                        udp_port=5000, vni=4242, multi=False):
     actions = [{
         'type': 'OUTPUT',
         'port': out_port
     }]
     if action == 'push':
-        vxlan_action = novi.make_experimenter_action(
-            novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vni))
+        if multi is True:
+            of_action = novi.make_experimenter_action(
+                novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vni))
+            actions.insert(0, of_action)
+        else:
+            of_action = novi.action_payload_vxlan_push(src_ip=None)
+            actions.insert(0, of_action)
     else:
-        vxlan_action = novi.make_experimenter_action(novi.action_payload_vxlan_pop())
-    actions.insert(0, vxlan_action)
+        of_action = novi.make_experimenter_action(novi.action_payload_vxlan_pop())
+        actions.insert(0, of_action)
 
     flowmod = {
         'dpid': args.dpid,
@@ -280,7 +285,7 @@ def pps_test(port=-1, size=9000, type="loop"):
     if type == 'loop':
         flow_loop_all_ports(0, 100)
     elif type == 'snake':
-        flow_snake(1, 28, 0)
+        flow_snake(3, 28, 0)
     else:
         raise Exception("Unknown pps_test type")
 
@@ -288,7 +293,7 @@ def pps_test(port=-1, size=9000, type="loop"):
 
 
 def vlan_test(size=9000):
-    flow_snake(1, 28, 0)
+    flow_snake(3, 28, 0)
     bring_switch_full_load(-1, size)
 
     logger.info("Switch under full load adding push/pop rules")
@@ -302,29 +307,41 @@ def vxlan_test(size=9000):
 
     logger.info("Switch under full load adding push/pop vxlan rules")
     flow_vxlan_push_pop(28, OFPP_IN_PORT, 'pop')
-    flow_vxlan_push_pop(1, OFPP_IN_PORT, 'push', vni=4242)
+    flow_vxlan_push_pop(3, OFPP_IN_PORT, 'push', vni=4242)
+
+def vxlan_multistep_test(size=9000):
+    flow_snake(3, 28, 0)
+    bring_switch_full_load(-1, size)
+
+    logger.info("Switch under full load adding push/pop vxlan multistep")
+    flow_vxlan_push_pop(28, OFPP_IN_PORT, 'pop')
+    flow_vxlan_push_pop(3, OFPP_IN_PORT, 'push', vni=4242, multi=True)
 
 
 def main():
+    max_runs = 1
+    run_num = 0
     try:
-        for test in args.tests:
-            logger.info("Running %s test case", test)
+        while run_num < max_runs:
+            for test in args.tests:
+                logger.info("Running %s test case, run number %i", test, run_num + 1)
 
-            for size in args.packet_size:
-                logger.info("Packet size of %i", size)
-                delete_all_flows()
-                time.sleep(10)  # need to wait until traffic has stopped
-                if test == 'goto_table':
-                    goto_table_test(size)
-                elif test == 'pps':
-                    pps_test(size=size)
-                elif test == 'pps-snake':
-                    pps_test(size=size, type="snake")
-                elif test == 'vlan':
-                    vlan_test(size)
-                elif test == 'vxlan':
-                    vxlan_test(size)
-                time.sleep(120)  # collect data for 2 minutes
+                for size in args.packet_size:
+                    logger.info("Packet size of %i", size)
+                    delete_all_flows()
+                    time.sleep(10)  # need to wait until traffic has stopped
+                    if test == 'goto_table':
+                        goto_table_test(size)
+                    elif test == 'pps':
+                        pps_test(size=size)
+                    elif test == 'pps-snake':
+                        pps_test(size=size, type="snake")
+                    elif test == 'vlan':
+                        vlan_test(size)
+                    elif test == 'vxlan':
+                        vxlan_test(size)
+                    time.sleep(300)  # collect data for 2 minutes
+            run_num += 1
     except KeyboardInterrupt:
         pass
     except Exception as e:
