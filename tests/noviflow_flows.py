@@ -25,6 +25,7 @@ def make_experimenter_action(data, data_type='base64'):
     :param data_type: Type of encoding used for data
     :return: Dict used as an action in Ryu flowentry/add
     """
+
     return {
         'type': 'EXPERIMENTER',
         'experimenter': NOVIFLOW_HEADER,
@@ -58,7 +59,7 @@ def action_payload_vxlan_push(src_ip=None, dst_ip=None, src_mac=None, dst_mac=No
     action_type = '0002'
     tunnel_type = '00'
 
-    if flags:
+    if flags == 1:
         if udp_port < 0 or udp_port > 65536:
             raise ValueError("UDP port needs to be between 0 and 65536")
 
