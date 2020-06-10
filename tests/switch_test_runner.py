@@ -177,7 +177,7 @@ def flow_vxlan_push_pop(in_port, out_port, action, table_id=0, priority=2000,
         'port': out_port
     }]
     if action == 'push':
-        if multi is True:
+        if multi is False:
             of_action = novi.make_experimenter_action(
                 novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vni))
             actions.insert(0, of_action)
@@ -340,6 +340,8 @@ def main():
                         vlan_test(size)
                     elif test == 'vxlan':
                         vxlan_test(size)
+                    elif test == 'vxlan_multi':
+                        vxlan_multistep_test(size)
                     time.sleep(300)  # collect data for 2 minutes
             run_num += 1
     except KeyboardInterrupt:
@@ -354,7 +356,7 @@ def parsecmdline():
     parser.add_argument('hostname', action='store', help='Name/IP of RYU Controller')
     parser.add_argument('dpid', action='store', help='DPID of Switch to Test')
     parser.add_argument('--port', action='store', default=8080, help='RYU Controller REST port')
-    parser.add_argument('-t', '--tests', nargs='*', choices=['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan'],
+    parser.add_argument('-t', '--tests', nargs='*', choices=['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan', 'vxlan_multi'],
                         default='pps', help='Tests to Run')
     parser.add_argument('-p', '--packet_size', nargs='*', default=9000, type=int, help='List of packet sizes to test')
     return parser.parse_args()

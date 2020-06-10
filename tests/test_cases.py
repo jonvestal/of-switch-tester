@@ -45,6 +45,12 @@ def test_exception_on_values_vxlan(src_ip, dst_ip, src_mac, dst_mac, udp_port, v
         novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vin)
 
 
+def test_action_payload_vxlan_push_multi():
+    action = novi.action_payload_vxlan_push(flags=0x00)
+    s = base64.b64decode(action)
+    assert s.hex() == 'ff0000020000000000'
+
+
 def test_action_payload_vxlan_pop():
     action = novi.action_payload_vxlan_pop()
     s = base64.b64decode(action)
