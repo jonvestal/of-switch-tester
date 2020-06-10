@@ -227,7 +227,7 @@ def parsecmdline():
     parser.add_argument('-p', '--packet_size', nargs='*', default=9000, type=int, help='List of packet sizes to test')
     parser.add_argument('--otsdb_hostname', action='store',
                         help='OpenTSDB server, if not specified uses RYU Controller')
-    parser.add_argument('--collection_inverval', action='store', default=120,
+    parser.add_argument('--collection_inverval', action='store', default=120, type=int,
                         help='Period of time to collect after starting a test')
     return parser.parse_args()
 
