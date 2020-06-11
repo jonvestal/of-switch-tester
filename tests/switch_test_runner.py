@@ -7,7 +7,7 @@ import time
 import flows as flows
 from constants import *
 
-TEST_CASES = ['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan', 'vxlan_multi']
+TEST_CASES = ['goto_table', 'pps', 'pps-snake', 'vlan', 'vlan', 'vxlan']
 
 
 def get_response(action, url, json=None, headers=None):
@@ -135,7 +135,7 @@ def goto_table_test(size):
     table = 5
     while table > 0:
         logger.info("collecting data for tables = %i", 5 - table + 1)
-        time.sleep(args.collection_inverval)
+        time.sleep(args.collection_interval)
         add_flow(flows.flow_goto_table(args.dpid, 0, table, 200))
         table -= 1
 
@@ -163,19 +163,24 @@ def vlan_test(size=9000):
 
     logger.info("Switch under full load adding push/pop rules")
     add_flow(flows.flow_vlan_push_pop(args.dpid, 28, OFPP_IN_PORT, 'pop'))
-    add_flow(flows.flow_vlan_push_pop(args.dpid, 1, OFPP_IN_PORT, 'push', vid=42))
+    if not args.header_only:
+        logger.info("Setting header values")
+        add_flow(flows.flow_vlan_push_pop(args.dpid, 1, OFPP_IN_PORT, 'push', vid=42))
+    else:
+        add_flow(flows.flow_vlan_push_pop(args.dpid, 1, OFPP_IN_PORT, 'push'))
 
 
-def vxlan_test(size=9000, flags=1):
+def vxlan_test(size=9000):
     for flow in flows.flow_snake(args.dpid, 3, 28, 0):
         add_flow(flow)
     bring_switch_full_load(-1, size)
 
     logger.info("Switch under full load adding push/pop vxlan rules")
     add_flow(flows.flow_vxlan_push_pop(args.dpid, 28, OFPP_IN_PORT, 'pop'))
-    if flags == 1:
+    if not args.header_only:
+        logger.info("Setting header values")
         add_flow(flows.flow_vxlan_push_pop(args.dpid, 3, OFPP_IN_PORT, 'push', vni=4242))
-    elif flags == 0:
+    else:
         add_flow(flows.flow_vxlan_push_pop(args.dpid, 3, OFPP_IN_PORT, 'push', flags=0))
 
 
@@ -201,14 +206,11 @@ def main():
                         vlan_test(size)
                     elif test == 'vxlan':
                         vxlan_test(size)
-                    elif test == 'vxlan_multi':
-                        vxlan_test(size, flags=0)
-                        pass
                     else:
                         raise Exception("Invalid test case specified")
                     logger.info("Collecting data for %s with size %i for %i seconds",
-                                test, size, args.collection_inverval)
-                    time.sleep(args.collection_inverval)
+                                test, size, args.collection_interval)
+                    time.sleep(args.collection_interval)
             run_num += 1
     except KeyboardInterrupt:
         pass
@@ -227,8 +229,10 @@ def parsecmdline():
     parser.add_argument('-p', '--packet_size', nargs='*', default=9000, type=int, help='List of packet sizes to test')
     parser.add_argument('--otsdb_hostname', action='store',
                         help='OpenTSDB server, if not specified uses RYU Controller')
-    parser.add_argument('--collection_inverval', action='store', default=120, type=int,
+    parser.add_argument('--collection_interval', action='store', default=120, type=int,
                         help='Period of time to collect after starting a test')
+    parser.add_argument('--header_only', action='store_true', default=False,
+                        help='Where applicable will only add the header and not set actual values')
     return parser.parse_args()
 
 
