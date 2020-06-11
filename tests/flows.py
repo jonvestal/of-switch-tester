@@ -106,7 +106,7 @@ def flow_snake(dpid, start_port, end_port, table_id, priority=1000):
     return flowmods
 
 
-def flow_vlan_push_pop(dpid, in_port, out_port, action, vid=42, table_id=0, priority=2000):
+def flow_vlan_push_pop(dpid, in_port, out_port, action, vid=None, table_id=0, priority=2000):
     """
     Creates a flow that will either push an 8100 VLAN or pop and 8100 VLAN.
 
@@ -114,7 +114,7 @@ def flow_vlan_push_pop(dpid, in_port, out_port, action, vid=42, table_id=0, prio
     :param in_port: (int) port to match for incoming packets
     :param out_port: (out) port to send packet out
     :param action: (string) PUSH/POP if PUSH will add header, POP removes header
-    :param vid: (int) vlan id
+    :param vid: (int) vlan id if not set will not push a vlan
     :param table_id: (int) table to put the flow into
     :param priority: (int) priority of the flow
     :return: (dict)
@@ -125,7 +125,9 @@ def flow_vlan_push_pop(dpid, in_port, out_port, action, vid=42, table_id=0, prio
                 }]
     if action == 'push':
         actions.insert(0, {'type': 'PUSH_VLAN', 'ethertype': 33024})
-        actions.insert(1, {'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': vid})
+
+        if vid is not None:
+            actions.insert(1, {'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': vid})
     else:
         actions.insert(0, {'type': 'POP_VLAN'})
 
