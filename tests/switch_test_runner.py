@@ -1,49 +1,37 @@
 #!/usr/bin/env python
 
-import requests
 import argparse
 import logging
 import time
+
+import requests
+
 import flows as flows
 from constants import *
 
-TEST_CASES = ['goto_table', 'pps', 'pps-snake', 'vlan', 'vlan', 'vxlan']
-
-
-def get_response(action, url, json=None, headers=None):
-
-    if action == "GET":
-        r = session.get(url)
-    elif action == "POST":
-        r = session.post(url, json=json, headers=headers)
-    elif action == "DELETE":
-        r = session.delete(url)
-    else:
-        raise SyntaxError("Unknown Request Action: {}".format(action))
-
-    r.raise_for_status()
-    return r
+TEST_CASES = ['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan', 'swap', 'copy']
+HTTP_HEADERS = {'Content-Type': 'application/json'}
+SNAKE_FIRST_PORT = 5
+SNAKE_LAST_PORT = 28
 
 
 def delete_all_flows():
     url = 'http://{}:{}/stats/flowentry/clear/{}'.format(args.hostname, args.port, args.dpid)
-    get_response("DELETE", url)
+    resp = session.delete(url)
+    resp.raise_for_status()
     logger.warning("Deleted all flows for %s", args.dpid)
 
 
 def add_flow(flowmod):
     url = 'http://{}:{}/stats/flowentry/add'.format(args.hostname, args.port)
-    headers = {'Content-Type': 'application/json'}
-    logger.debug("sending flowmod")
-    logger.debug(flowmod)
-    response = get_response("POST", url, json=flowmod, headers=headers)
+    logger.debug("sending flowmod %s", flowmod)
+    response = session.post(url, json=flowmod, headers=HTTP_HEADERS)
+    response.raise_for_status()
     return response
 
 
 def shut_port(port_no, action):
     url = 'http://{}:{}/stats/portdesc/modify'.format(args.hostname, args.port)
-    headers = {'Content-Type': 'application/json'}
-
     if action == "up":
         state = 0
     else:
@@ -55,14 +43,16 @@ def shut_port(port_no, action):
         "config": state,
         "mask": 1
     }
-    response = get_response("POST", url, json=data, headers=headers)
+    response = session.post(url, json=data, headers=HTTP_HEADERS)
+    response.raise_for_status()
     return response
 
 
 def send_packet_out(port, pkt_size, count):
     url = 'http://{}:{}/tpn/packet_out/{}/{}/{}/{}'.format(
         args.hostname, args.port, args.dpid, port, pkt_size, count)
-    get_response("POST", url)
+    resp = session.post(url)
+    resp.raise_for_status()
     logger.debug("Sending %i packet out to port %i of size %i", count, port, pkt_size)
 
 
@@ -78,11 +68,7 @@ def switch_at_peak_load(host, port=4242):
                             }
                            ]
                }
-    headers = {
-        'Content-Type': 'application/json'
-    }
-
-    response = requests.request("POST", url, headers=headers, json=payload)
+    response = requests.post(url, headers=HTTP_HEADERS, json=payload)
     response.raise_for_status()
 
     dps = sorted(response.json()[0]['dps'].items())
@@ -100,7 +86,7 @@ def switch_at_peak_load(host, port=4242):
 
     if growth_rate == 0:
         return False  # Hack to deal with fact pushing packets every second but TSDB updated every minute
-                      # has the risk of never finishing...
+        # has the risk of never finishing...
 
     return growth_rate < 0.05
 
@@ -146,7 +132,7 @@ def pps_test(port=-1, size=9000, type="loop"):
     if type == 'loop':
         add_flow(flows.flow_loop_all_ports(args.dpid, 0, 100))
     elif type == 'snake':
-        flowmods = flows.flow_snake(args.dpid, 3, 28, 0)
+        flowmods = flows.flow_snake(args.dpid, SNAKE_FIRST_PORT, SNAKE_LAST_PORT, 0)
         for flow in flowmods:
             add_flow(flow)
     else:
@@ -156,32 +142,52 @@ def pps_test(port=-1, size=9000, type="loop"):
 
 
 def vlan_test(size=9000):
-    flowmods = flows.flow_snake(args.dpid, 3, 28, 0)
+    flowmods = flows.flow_snake(args.dpid, SNAKE_FIRST_PORT, SNAKE_LAST_PORT, 0)
     for flow in flowmods:
         add_flow(flow)
     bring_switch_full_load(-1, size)
 
     logger.info("Switch under full load adding push/pop rules")
-    add_flow(flows.flow_vlan_push_pop(args.dpid, 28, OFPP_IN_PORT, 'pop'))
+    add_flow(flows.flow_vlan_push_pop(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT, 'pop'))
     if not args.header_only:
         logger.info("Setting header values")
-        add_flow(flows.flow_vlan_push_pop(args.dpid, 1, OFPP_IN_PORT, 'push', vid=42))
+        add_flow(flows.flow_vlan_push_pop(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT, 'push', vid=42))
     else:
-        add_flow(flows.flow_vlan_push_pop(args.dpid, 1, OFPP_IN_PORT, 'push'))
+        add_flow(flows.flow_vlan_push_pop(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT, 'push'))
 
 
 def vxlan_test(size=9000):
-    for flow in flows.flow_snake(args.dpid, 3, 28, 0):
+    for flow in flows.flow_snake(args.dpid, SNAKE_FIRST_PORT, SNAKE_LAST_PORT, 0):
         add_flow(flow)
     bring_switch_full_load(-1, size)
 
     logger.info("Switch under full load adding push/pop vxlan rules")
-    add_flow(flows.flow_vxlan_push_pop(args.dpid, 28, OFPP_IN_PORT, 'pop'))
+    add_flow(flows.flow_vxlan_pop(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT))
     if not args.header_only:
         logger.info("Setting header values")
-        add_flow(flows.flow_vxlan_push_pop(args.dpid, 3, OFPP_IN_PORT, 'push', vni=4242))
+        add_flow(flows.flow_vxlan_push(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT, vni=4242))
     else:
-        add_flow(flows.flow_vxlan_push_pop(args.dpid, 3, OFPP_IN_PORT, 'push', flags=0))
+        add_flow(flows.flow_vxlan_push(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT, flags=0))
+
+
+def swap_test(size=9000):
+    for flow in flows.flow_snake(args.dpid, SNAKE_FIRST_PORT, SNAKE_LAST_PORT, 0):
+        add_flow(flow)
+    bring_switch_full_load(-1, size)
+
+    logger.info("Switch under full load adding swap fields rules")
+    add_flow(flows.flow_swap_fields(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT))
+    add_flow(flows.flow_swap_fields(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT))
+
+
+def copy_test(size=9000):
+    for flow in flows.flow_snake(args.dpid, SNAKE_FIRST_PORT, SNAKE_LAST_PORT, 0):
+        add_flow(flow)
+    bring_switch_full_load(-1, size)
+
+    logger.info("Switch under full load adding copy fields rules")
+    add_flow(flows.flow_copy_fields(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT))
+    add_flow(flows.flow_set_fields(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT, {'eth_dst': 'aa:bb:cc:dd:ee:ff'}))
 
 
 def main():
@@ -206,6 +212,10 @@ def main():
                         vlan_test(size)
                     elif test == 'vxlan':
                         vxlan_test(size)
+                    elif test == 'swap':
+                        swap_test(size)
+                    elif test == 'copy':
+                        copy_test(size)
                     else:
                         raise Exception("Invalid test case specified")
                     logger.info("Collecting data for %s with size %i for %i seconds",
