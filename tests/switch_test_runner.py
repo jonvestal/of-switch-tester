@@ -9,7 +9,7 @@ import requests
 import flows as flows
 from constants import *
 
-TEST_CASES = ['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan', 'swap', 'copy']
+TEST_CASES = ['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan', 'swap', 'copy', 'metadata']
 HTTP_HEADERS = {'Content-Type': 'application/json'}
 SNAKE_FIRST_PORT = 5
 SNAKE_LAST_PORT = 28
@@ -141,12 +141,15 @@ def pps_test(port=-1, size=9000, type="loop"):
     bring_switch_full_load(port, size)
 
 
-def vlan_test(size=9000):
+def prepare_snake_flows(size):
     flowmods = flows.flow_snake(args.dpid, SNAKE_FIRST_PORT, SNAKE_LAST_PORT, 0)
     for flow in flowmods:
         add_flow(flow)
     bring_switch_full_load(-1, size)
 
+
+def vlan_test(size=9000):
+    prepare_snake_flows(size)
     logger.info("Switch under full load adding push/pop rules")
     add_flow(flows.flow_vlan_push_pop(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT, 'pop'))
     if not args.header_only:
@@ -157,9 +160,7 @@ def vlan_test(size=9000):
 
 
 def vxlan_test(size=9000):
-    for flow in flows.flow_snake(args.dpid, SNAKE_FIRST_PORT, SNAKE_LAST_PORT, 0):
-        add_flow(flow)
-    bring_switch_full_load(-1, size)
+    prepare_snake_flows(size)
 
     logger.info("Switch under full load adding push/pop vxlan rules")
     add_flow(flows.flow_vxlan_pop(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT))
@@ -171,24 +172,22 @@ def vxlan_test(size=9000):
 
 
 def swap_test(size=9000):
-    for flow in flows.flow_snake(args.dpid, SNAKE_FIRST_PORT, SNAKE_LAST_PORT, 0):
-        add_flow(flow)
-    bring_switch_full_load(-1, size)
-
+    prepare_snake_flows(size)
     logger.info("Switch under full load adding swap fields rules")
-    add_flow(flows.flow_swap_fields(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT))
-    add_flow(flows.flow_swap_fields(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT))
+    add_flow(flows.flow_swap_fields(args.dpid, SNAKE_FIRST_PORT, SNAKE_FIRST_PORT + 1))
 
 
 def copy_test(size=9000):
-    for flow in flows.flow_snake(args.dpid, SNAKE_FIRST_PORT, SNAKE_LAST_PORT, 0):
-        add_flow(flow)
-    bring_switch_full_load(-1, size)
+    prepare_snake_flows(size)
 
     logger.info("Switch under full load adding copy fields rules")
-    add_flow(flows.flow_copy_fields(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT))
-    add_flow(flows.flow_set_fields(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT, {'eth_dst': 'aa:bb:cc:dd:ee:ff'}))
+    add_flow(flows.flow_copy_fields(args.dpid, SNAKE_FIRST_PORT, SNAKE_FIRST_PORT + 1))
 
+def metadata_test(size=9000):
+    prepare_snake_flows(size)
+    logger.info("Switch under full load adding metadata_write rules")
+    for flow in flows.metadata_milti_table_flows(args.dpid, SNAKE_FIRST_PORT, SNAKE_FIRST_PORT + 1):
+        add_flow(flow)
 
 def main():
     max_runs = 1
@@ -216,6 +215,8 @@ def main():
                         swap_test(size)
                     elif test == 'copy':
                         copy_test(size)
+                    elif test == 'metadata':
+                        metadata_test(size)
                     else:
                         raise Exception("Invalid test case specified")
                     logger.info("Collecting data for %s with size %i for %i seconds",

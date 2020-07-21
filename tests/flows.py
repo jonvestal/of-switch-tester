@@ -52,6 +52,50 @@ def flow_goto_table(dpid, table_id, dst_table, priority):
     }
 
 
+def metadata_milti_table_flows(dpid, in_port, out_port, priority=2000):
+    return [
+        {
+            'dpid': dpid,
+            'cookie': COOKIE_METADATA,
+            'table_id': 0,
+            'priority': priority,
+            'match': {'in_port': in_port},
+            "actions": [
+                {
+                    "type": "WRITE_METADATA",
+                    "metadata": 1,
+                    "metadata_mask": 1
+                },
+                {
+                    'type': "GOTO_TABLE",
+                    'table_id': 1
+                }
+            ]
+        },
+        {
+            'dpid': dpid,
+            'cookie': COOKIE_METADATA_OUT,
+            'table_id': 1,
+            'priority': priority,
+            "actions": [
+                {'type': 'OUTPUT', 'port': out_port}
+            ]
+        },
+    ]
+
+def pass_through_flow(dpid, in_port, out_port, priority=1000):
+    return {
+            'dpid': dpid,
+            'cookie': COOKIE_PASS_THROUGH,
+            'table_id': 0,
+            'priority': priority,
+            'match': {'in_port': in_port},
+            "actions": [
+                {'type': 'OUTPUT', 'port': out_port}
+            ]
+        }
+
+
 def flow_snake(dpid, start_port, end_port, table_id, priority=1000):
     """
     Sets up a snake through the switch.  Assumes that ports are connected in pairs of odd + 1, for example
