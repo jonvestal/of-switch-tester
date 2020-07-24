@@ -1,6 +1,6 @@
-from constants import *
-import noviflow_flows as novi
 import copy
+
+from constants import *
 
 
 def flow_loop_all_ports(dpid, table_id, priority=1):
@@ -50,6 +50,50 @@ def flow_goto_table(dpid, table_id, dst_table, priority):
             }
         ]
     }
+
+
+def metadata_milti_table_flows(dpid, in_port, out_port, priority=2000):
+    return [
+        {
+            'dpid': dpid,
+            'cookie': COOKIE_METADATA,
+            'table_id': 0,
+            'priority': priority,
+            'match': {'in_port': in_port},
+            "actions": [
+                {
+                    "type": "WRITE_METADATA",
+                    "metadata": 1,
+                    "metadata_mask": 1
+                },
+                {
+                    'type': "GOTO_TABLE",
+                    'table_id': 1
+                }
+            ]
+        },
+        {
+            'dpid': dpid,
+            'cookie': COOKIE_METADATA_OUT,
+            'table_id': 1,
+            'priority': priority,
+            "actions": [
+                {'type': 'OUTPUT', 'port': out_port}
+            ]
+        },
+    ]
+
+def pass_through_flow(dpid, in_port, out_port, priority=1000):
+    return {
+            'dpid': dpid,
+            'cookie': COOKIE_PASS_THROUGH,
+            'table_id': 0,
+            'priority': priority,
+            'match': {'in_port': in_port},
+            "actions": [
+                {'type': 'OUTPUT', 'port': out_port}
+            ]
+        }
 
 
 def flow_snake(dpid, start_port, end_port, table_id, priority=1000):
@@ -120,9 +164,9 @@ def flow_vlan_push_pop(dpid, in_port, out_port, action, vid=None, table_id=0, pr
     :return: (dict)
     """
     actions = [{
-                'type': 'OUTPUT',
-                'port': out_port
-                }]
+        'type': 'OUTPUT',
+        'port': out_port
+    }]
     if action == 'push':
         actions.insert(0, {'type': 'PUSH_VLAN', 'ethertype': 33024})
 
@@ -141,12 +185,12 @@ def flow_vlan_push_pop(dpid, in_port, out_port, action, vid=None, table_id=0, pr
     }
 
 
-def flow_vxlan_push_pop(dpid, in_port, out_port, action, table_id=0, priority=2000,
-                        src_ip='192.168.0.1', dst_ip='192.168.0.2',
-                        src_mac='112233445566', dst_mac='aabbccddeeff',
-                        udp_port=5000, vni=4242, flags=1):
+def flow_vxlan_push(dpid, in_port, out_port, table_id=0, priority=2000,
+                    src_ip='192.168.0.1', dst_ip='192.168.0.2',
+                    src_mac='11:22:33:44:55:66', dst_mac='aa:bb:cc:dd:ee:ff',
+                    udp_port=5000, vni=4242, flags=1):
     """
-    Create a VXLAN PUSH or POP flow.
+    Create a VXLAN PUSH flow.
 
     :param dpid: Switch DPID
     :param in_port: (int) port to match for incoming packets
@@ -163,20 +207,155 @@ def flow_vxlan_push_pop(dpid, in_port, out_port, action, table_id=0, priority=20
     :param flags: (int) 0 = no header fields, 1 = add headers
     :return: (dict)
     """
-    actions = [{
+    actions = []
+    if flags:
+        actions.append({'type': 'NOVI_PUSH_VXLAN', 'eth_src': src_mac, 'eth_dst': dst_mac,
+                        'ipv4_src': src_ip, 'ipv4_dst': dst_ip, 'udp_src': udp_port, 'vni': vni})
+    else:
+        actions.append({'type': 'NOVI_PUSH_VXLAN'})
+        actions.append({'type': 'SET_FIELD', 'field': 'eth_src', 'value': src_mac})
+        actions.append({'type': 'SET_FIELD', 'field': 'eth_dst', 'value': dst_mac})
+        actions.append({'type': 'SET_FIELD', 'field': 'ipv4_src', 'value': src_ip})
+        actions.append({'type': 'SET_FIELD', 'field': 'ipv4_dst', 'value': dst_ip})
+        actions.append({'type': 'SET_FIELD', 'field': 'udp_src', 'value': udp_port})
+        actions.append({'type': 'SET_FIELD', 'field': 'tunnel_id', 'value': vni})
+    actions.append({
         'type': 'OUTPUT',
         'port': out_port
-    }]
-    if action == 'push':
-        of_action = novi.make_experimenter_action(
-            novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vni, flags))
-    else:
-        of_action = novi.make_experimenter_action(novi.action_payload_vxlan_pop())
-    actions.insert(0, of_action)
+    })
+    return {
+        'dpid': dpid,
+        'cookie': COOKIE_VXLAN,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {'in_port': in_port},
+        'actions': actions
+    }
+
+
+def flow_vxlan_pop(dpid, in_port, out_port, table_id=0, priority=2000):
+    """
+    Create a VXLAN POP flow.
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param out_port: (int) port to send packet out
+    :param table_id: (int) table to put flow into
+    :param priority: (int) priority of the flow
+    :return: (dict)
+    """
 
     return {
         'dpid': dpid,
-        'cookie': COOKIE_VLAN,
+        'cookie': COOKIE_VXLAN,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {'in_port': in_port},
+        'actions': [
+            {'type': 'NOVI_POP_VXLAN'},
+            {'type': 'OUTPUT', 'port': out_port}
+        ]
+    }
+
+
+def flow_swap_fields(dpid, in_port, out_port, table_id=0, priority=2000, src='eth_src', dst='eth_dst',
+                     src_offset=0, dst_offset=0, n_bits=48):
+    """
+    Create a swap fields flow.
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param out_port: (int) port to send packet out
+    :param table_id: (int) table to put flow into
+    :param priority: (int) priority of the flow
+    :param src: (string) source field name, including novi experementer oxm's
+    :param dst: (string) destination field name, including novi experementer oxm's
+    :param src_offset: (int) source field offset
+    :param dst_offset: (int) destination field offset
+    :param n_bits: (int) bits to swap
+    :return: (dict)
+    """
+
+    return {
+        'dpid': dpid,
+        'cookie': COOKIE_SWAP_FIELDS,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {'in_port': in_port},
+        'actions': [
+            {
+                'type': 'NOVI_SWAP_FIELD',
+                'n_bits': n_bits,
+                'src_offset': src_offset,
+                'dst_offset': dst_offset,
+                'src': src,
+                'dst': dst
+            },
+            {'type': 'OUTPUT', 'port': out_port}
+        ]
+    }
+
+
+def flow_copy_fields(dpid, in_port, out_port, table_id=0, priority=2000, src='eth_src', dst='eth_dst',
+                     src_offset=0, dst_offset=0, n_bits=48):
+    """
+    Create a copy fields flow.
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param out_port: (int) port to send packet out
+    :param table_id: (int) table to put flow into
+    :param priority: (int) priority of the flow
+    :param src: (string) source field name, including novi experementer oxm's
+    :param dst: (string) destination field name, including novi experementer oxm's
+    :param src_offset: (int) source field offset
+    :param dst_offset: (int) destination field offset
+    :param n_bits: (int) bits to copy
+    :return: (dict)
+    """
+
+    return {
+        'dpid': dpid,
+        'cookie': COOKIE_COPY_FIELDS,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {'in_port': in_port},
+        'actions': [
+            {
+                'type': 'NOVI_COPY_FIELD',
+                'n_bits': n_bits,
+                'src_offset': src_offset,
+                'dst_offset': dst_offset,
+                'src': src,
+                'dst': dst
+            },
+            {'type': 'OUTPUT', 'port': out_port}
+        ]
+    }
+
+
+def flow_set_fields(dpid, in_port, out_port, table_id=0, priority=2000, values=None):
+    """
+    Create a flow with set fields.
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param out_port: (int) port to send packet out
+    :param table_id: (int) table to put flow into
+    :param priority: (int) priority of the flow
+    :param values: (dict) field/value pairs
+    :return: (dict)
+    """
+    if not values:
+        values = {}
+
+    actions = []
+    for field, value in values.items():
+        actions.append({'type': 'SET_FIELD', 'field': field, 'value': value})
+    actions.append({'type': 'OUTPUT', 'port': out_port})
+    return {
+        'dpid': dpid,
+        'cookie': COOKIE_COPY_FIELDS,
         'table_id': table_id,
         'priority': priority,
         'match': {'in_port': in_port},
