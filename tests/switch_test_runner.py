@@ -9,7 +9,8 @@ import requests
 import flows as flows
 from constants import *
 
-TEST_CASES = ['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan', 'swap', 'copy', 'metadata']
+TEST_CASES = ['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan', 'swap', 'copy', 'metadata', 'ingress-qnq-vlan',
+              'ingress-qnq-vxlan']
 HTTP_HEADERS = {'Content-Type': 'application/json'}
 SNAKE_FIRST_PORT = 5
 SNAKE_LAST_PORT = 28
@@ -183,11 +184,31 @@ def copy_test(size=9000):
     logger.info("Switch under full load adding copy fields rules")
     add_flow(flows.flow_copy_fields(args.dpid, SNAKE_FIRST_PORT, SNAKE_FIRST_PORT + 1))
 
+
 def metadata_test(size=9000):
     prepare_snake_flows(size)
     logger.info("Switch under full load adding metadata_write rules")
     for flow in flows.metadata_milti_table_flows(args.dpid, SNAKE_FIRST_PORT, SNAKE_FIRST_PORT + 1):
         add_flow(flow)
+
+
+def ingress_qnq_vlan_test(size=9000):
+    prepare_snake_flows(size)
+    logger.info("Switch under full load adding ingress_qnq_vlan rules")
+    for flow in flows.flow_ingress_vlan_qnq(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT):
+        add_flow(flow)
+    for flow in flows.flow_pop_vlan_and_push_qnq(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT):
+        add_flow(flow)
+
+
+def ingress_qnq_vxlan_test(size=9000):
+    prepare_snake_flows(size)
+    logger.info("Switch under full load adding ingress_qnq_vxlan rules")
+    for flow in flows.flow_ingress_vxlan_qnq(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT):
+        add_flow(flow)
+    for flow in flows.flow_pop_vxlan_and_push_qnq(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT):
+        add_flow(flow)
+
 
 def main():
     max_runs = 1
@@ -217,6 +238,10 @@ def main():
                         copy_test(size)
                     elif test == 'metadata':
                         metadata_test(size)
+                    elif test == 'ingress-qnq-vlan':
+                        ingress_qnq_vlan_test(size)
+                    elif test == 'ingress-qnq-vxlan':
+                        ingress_qnq_vxlan_test(size)
                     else:
                         raise Exception("Invalid test case specified")
                     logger.info("Collecting data for %s with size %i for %i seconds",
