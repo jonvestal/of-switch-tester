@@ -446,19 +446,19 @@ def flow_pop_vlan_and_push_new_vlans(dpid, in_port, out_port, inner_vid=46, oute
         'dpid': dpid,
         'cookie': COOKIE_INGRESS_VLAN,
         'table_id': table_id,
-        'priority': priority,
-        'match': {'in_port': in_port},
-        'actions': push_actions
-    }, {
-        'dpid': dpid,
-        'cookie': COOKIE_INGRESS_VLAN,
-        'table_id': table_id,
-        'priority': priority,
+        'priority': priority + 1,
         'match': {
             'in_port': in_port,
             'vlan_vid': transit_vid
         },
         'actions': replace_actions
+    }, {
+        'dpid': dpid,
+        'cookie': COOKIE_INGRESS_VLAN,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {'in_port': in_port},
+        'actions': push_actions
     }]
 
 
@@ -540,7 +540,7 @@ def flow_pop_vxlan_and_push_vlan(dpid, in_port, out_port, inner_vid=46, outer_vi
     """
 
     push_vlan_actions = [{'type': 'PUSH_VLAN', 'ethertype': 33024},
-                        {'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': inner_vid}]
+                         {'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': inner_vid}]
 
     if outer_vid is not None:
         push_vlan_actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
@@ -553,19 +553,74 @@ def flow_pop_vxlan_and_push_vlan(dpid, in_port, out_port, inner_vid=46, outer_vi
 
     return [{
         'dpid': dpid,
-        'cookie': COOKIE_INGRESS_VXLAN,
-        'table_id': table_id,
-        'priority': priority,
-        'match': {'in_port': in_port},
-        'actions': push_vlan_actions
-    }, {
-        'dpid': dpid,
         'cookie': COOKIE_INGRESS_VLAN,
         'table_id': table_id,
-        'priority': priority,
+        'priority': priority + 1,
         'match': {
             'in_port': in_port,
             'tunnel_id': vni
         },
         'actions': pop_vxlan_and_push_vlan_actions
+    }, {
+        'dpid': dpid,
+        'cookie': COOKIE_INGRESS_VXLAN,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {'in_port': in_port},
+        'actions': push_vlan_actions
     }]
+
+
+def flow_transit_vlan(dpid, in_port, out_port, transit_vid=48, table_id=0, priority=2000):
+    """
+    Creates a flow that will match 8100 VLAN and throw packet to out port.
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param out_port: (out) port to send packet out
+    :param transit_vid: (int) transit vlan id
+    :param table_id: (int) table to put the flow into
+    :param priority: (int) priority of the flow
+    :return: (dict)
+    """
+
+    return {
+        'dpid': dpid,
+        'cookie': COOKIE_TRANSIT_VLAN,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {
+            'in_port': in_port,
+            'vlan_vid': transit_vid
+        },
+        'actions': [{'type': 'OUTPUT', 'port': out_port}]
+    }
+
+
+def flow_transit_vxlan(dpid, in_port, out_port,  table_id=0, priority=2000, vni=4242):
+    """
+    Creates a flow that will match VxLAN id and throw packet to out port.
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param out_port: (out) port to send packet out
+    :param table_id: (int) table to put the flow into
+    :param priority: (int) priority of the flow
+    :param vni: (int) VxLAN ID
+    :return: (dict)
+    """
+
+    return {
+        'dpid': dpid,
+        'cookie': COOKIE_TRANSIT_VXLAN,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {
+            'in_port': in_port,
+            "eth_type": 2048,
+            "ip_proto": 17,
+            "udp_dst": 4789,
+            'tunnel_id': vni
+        },
+        'actions': [{'type': 'OUTPUT', 'port': out_port}]
+    }
