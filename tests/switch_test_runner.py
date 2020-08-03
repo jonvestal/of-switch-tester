@@ -10,7 +10,7 @@ import flows as flows
 from constants import *
 
 TEST_CASES = ['goto_table', 'pps', 'pps-snake', 'vlan', 'vxlan', 'swap', 'copy', 'metadata', 'ingress-qnq-vlan',
-              'ingress-qnq-vxlan', 'ingress-vlan', 'ingress-vxlan']
+              'ingress-qnq-vxlan', 'ingress-vlan', 'ingress-vxlan', 'transit-vlan', 'transit-vxlan']
 HTTP_HEADERS = {'Content-Type': 'application/json'}
 SNAKE_FIRST_PORT = 5
 SNAKE_LAST_PORT = 28
@@ -228,6 +228,22 @@ def ingress_vxlan_test(size=9000):
         add_flow(flow)
 
 
+def transit_vlan_test(size=9000):
+    prepare_snake_flows(size)
+    logger.info("Switch under full load adding transit_vlan rules")
+    add_flow(flows.flow_transit_vlan(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT))
+    add_flow(flows.flow_transit_vlan(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT))
+    add_flow(flows.flow_vlan_push_pop(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT, 'push', vid=48, priority=1500))
+
+
+def transit_vxlan_test(size=9000):
+    prepare_snake_flows(size)
+    logger.info("Switch under full load adding transit_vxlan rules")
+    add_flow(flows.flow_transit_vxlan(args.dpid, SNAKE_LAST_PORT, OFPP_IN_PORT))
+    add_flow(flows.flow_transit_vxlan(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT))
+    add_flow(flows.flow_vxlan_push(args.dpid, SNAKE_FIRST_PORT, OFPP_IN_PORT, priority=1500))
+
+
 def main():
     max_runs = 1
     run_num = 0
@@ -264,6 +280,10 @@ def main():
                         ingress_vlan_test(size)
                     elif test == 'ingress-vxlan':
                         ingress_vxlan_test(size)
+                    elif test == 'transit-vlan':
+                        transit_vlan_test(size)
+                    elif test == 'transit-vxlan':
+                        transit_vxlan_test(size)
                     else:
                         raise Exception("Invalid test case specified")
                     logger.info("Collecting data for %s with size %i for %i seconds",
