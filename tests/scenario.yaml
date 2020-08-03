@@ -1,0 +1,14 @@
+name: swap
+packet_size: 9000
+collection_interval: 120
+environment:
+  otsdb_host: localhost
+  otsdb_port: 4242
+  ryu_host: localhost
+  ryu_port: 8080
+  switches:
+    - dpid: 00:00:00:22:3d:5a:16:51
+      snake_start_port: 5
+      snake_end_port: 28
+      ingress_port: 3
+      egress_port: 4
