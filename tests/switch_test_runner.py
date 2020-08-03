@@ -7,7 +7,7 @@ import time
 import yaml
 
 from scenario import basic as basic
-from scenario import ingress as ingress
+from scenario import ingress_egress as ingress
 from scenario import transit as transit
 from scenario import loop as loop
 
@@ -22,17 +22,19 @@ clazz_map = {
     'swap': basic.SwapScenario,
     'copy': basic.CopyScenario,
     'metadata': basic.MetadataScenario,
-    'ingress-qnq-vlan': ingress.IngressQnqVlanScenario,
-    'ingress-qnq-vxlan': ingress.IngressQnqVxlanScenario,
-    'ingress-vlan': ingress.IngressVlanScenario,
-    'ingress-vxlan': ingress.IngressVxlanScenario,
+    'ingress-egress-qnq-vlan': ingress.IngressEgressQnqVlanScenario,
+    'ingress-egress-qnq-vxlan': ingress.IngressEgressQnqVxlanScenario,
+    'ingress-egress-vlan': ingress.IngressEgressVlanScenario,
+    'ingress-egress-vxlan': ingress.IngressEgressVxlanScenario,
     'transit-vlan': transit.TransitVlanScenario,
     'transit-vxlan': transit.TransitVxlanScenario
 }
 
+
 def get_scenario(config):
     cls = clazz_map[config['name']]
     return cls(**config)
+
 
 def main(config):
     max_runs = 1
@@ -47,7 +49,7 @@ def main(config):
             scenario.run()
             time.sleep(10)  # need to wait until traffic has stopped
             logging.info("Collecting data for %s with size %i for %i seconds",
-                        scenario.name, size, scenario.collection_interval)
+                         scenario.name, size, scenario.collection_interval)
             time.sleep(scenario.collection_interval)
             run_num += 1
     except KeyboardInterrupt:
