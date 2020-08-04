@@ -1,3 +1,5 @@
+# Deprecated
+
 import codecs
 import socket
 

@@ -1,4 +1,4 @@
-import tests.noviflow_flows as novi
+import openflow.noviflow_flows as novi
 import base64
 import socket
 import pytest
