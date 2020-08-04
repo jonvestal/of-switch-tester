@@ -9,7 +9,7 @@ class IngressEgressQnqVlanScenario(Scenario):
 
     def run(self):
         for sw in self.environment.switches.values():
-            self.prepare_snake_flows(sw.dpid, self.packet_size)
+            self.prepare_snake_flows(sw.dpid, self.current_packet_size())
             logging.info("Switch under full load adding ingress_egress_qnq_vlan rules")
             for flow in flows.flow_ingress_vlan(sw.dpid, sw.snake_end_port, OFPP_IN_PORT,
                                                 inner_vid=46, outer_vid=47, priority=2000):
@@ -23,7 +23,7 @@ class IngressEgressQnqVlanScenario(Scenario):
 class IngressEgressVlanScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
-            self.prepare_snake_flows(sw.dpid, self.packet_size)
+            self.prepare_snake_flows(sw.dpid, self.current_packet_size())
             logging.info("Switch under full load adding ingress_egress_vlan rules")
             for flow in flows.flow_ingress_vlan(sw.dpid, sw.snake_end_port, OFPP_IN_PORT, inner_vid=46, priority=2000):
                 self.add_flow(flow)
@@ -36,7 +36,7 @@ class IngressEgressVlanScenario(Scenario):
 class IngressEgressQnqVxlanScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
-            self.prepare_snake_flows(sw.dpid, self.packet_size)
+            self.prepare_snake_flows(sw.dpid, self.current_packet_size())
             logging.info("Switch under full load adding ingress_egress_qnq_vxlan rules")
             for flow in flows.flow_ingress_vxlan(sw.dpid, sw.snake_end_port, OFPP_IN_PORT,
                                                  inner_vid=46, outer_vid=47, priority=2000):
@@ -50,7 +50,7 @@ class IngressEgressQnqVxlanScenario(Scenario):
 class IngressEgressVxlanScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
-            self.prepare_snake_flows(sw.dpid, self.packet_size)
+            self.prepare_snake_flows(sw.dpid, self.current_packet_size())
             logging.info("Switch under full load adding ingress_egress_vxlan rules")
             for flow in flows.flow_ingress_vxlan(sw.dpid, sw.snake_end_port, OFPP_IN_PORT, inner_vid=46, priority=2000):
                 self.add_flow(flow)

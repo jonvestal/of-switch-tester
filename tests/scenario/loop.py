@@ -9,7 +9,7 @@ class PpsLoopScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.add_flow(flows.flow_loop_all_ports(sw.dpid, 0, 100))
-            self.bring_switch_full_load(sw.dpid, -1, self.packet_size)
+            self.bring_switch_full_load(sw.dpid, -1, self.current_packet_size())
 
 
 class GoToTableScenario(Scenario):
@@ -23,7 +23,7 @@ class GoToTableScenario(Scenario):
             self.add_flow(flows.flow_goto_table(sw.dpid, 3, 4, 100))
             self.add_flow(flows.flow_goto_table(sw.dpid, 4, 5, 100))
 
-            self.bring_switch_full_load(sw.dpid, -1, self.packet_size)
+            self.bring_switch_full_load(sw.dpid, -1, self.current_packet_size())
 
             table = 5
             while table > 0:
