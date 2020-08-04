@@ -1,6 +1,8 @@
 venv
 __pycache__
 .idea
+*.pyc
+*.egg-info
 data
 .DS_Store
-report
+reports

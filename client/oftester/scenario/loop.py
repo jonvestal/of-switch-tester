@@ -1,8 +1,8 @@
 import logging
 import time
 
-from openflow import flows
-from scenario.model import Scenario
+from oftester.openflow import flows
+from oftester.scenario.model import Scenario
 
 
 class PpsLoopScenario(Scenario):

@@ -61,5 +61,13 @@ IP_SRC = '1.1.1.1'
 IP_DST = '2.2.2.2'
 IP_PROTO = inet.IPPROTO_UDP
 
+### Run Scenarios
+- Install of-tester at least in development mode by:
+
+`python setup.py develop`
+
+- Run scenario:
+
+`oftester scenario.yaml`
 
 Good Luck! 

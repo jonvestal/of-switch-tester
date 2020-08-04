@@ -4,7 +4,7 @@ from datetime import datetime
 
 import requests
 
-from openflow import flows
+from oftester.openflow import flows
 
 HTTP_HEADERS = {'Content-Type': 'application/json'}
 

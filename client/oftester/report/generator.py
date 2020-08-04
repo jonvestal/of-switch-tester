@@ -2,17 +2,19 @@ import os
 import requests
 from jinja2 import Environment, PackageLoader
 
+base_dir = './reports'
+
 
 class ReportGenerator:
     def __init__(self, scenario):
         self.scenario = scenario
-        if not os.path.isdir('../report'):
-            os.mkdir('../report')
-        self.env = Environment(loader=PackageLoader('report', 'template'))
+        if not os.path.isdir(base_dir):
+            os.mkdir(base_dir)
+        self.env = Environment(loader=PackageLoader('oftester.report', 'template'))
 
     def report(self):
         template = self.env.get_template('index.html')
-        template.stream(packet_sizes=self.scenario.packet_sizes).dump('../report/index.html')
+        template.stream(packet_sizes=self.scenario.packet_sizes).dump(base_dir + '/index.html')
 
     def generate_graph(self, idx):
         time_metrics = self.scenario.time_metrics[idx]
@@ -27,6 +29,6 @@ class ReportGenerator:
                           start.strftime(fmt), stop.strftime(fmt))
         resp = requests.get(url, stream=True)
         if resp.status_code == 200:
-            with open('../report/%d.png' % idx, 'wb') as f:
+            with open(base_dir + '/%d.png' % idx, 'wb') as f:
                 for chunk in resp.iter_content(1024):
                     f.write(chunk)

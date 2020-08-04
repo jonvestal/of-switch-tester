@@ -6,11 +6,11 @@ import time
 
 import yaml
 
-from report.generator import ReportGenerator
-from scenario import basic as basic
-from scenario import ingress_egress as ingress
-from scenario import transit as transit
-from scenario import loop as loop
+from oftester.report.generator import ReportGenerator
+from oftester.scenario import basic as basic
+from oftester.scenario import ingress_egress as ingress
+from oftester.scenario import transit as transit
+from oftester.scenario import loop as loop
 
 clazz_map = {
     'pps': basic.PpsScenario,
@@ -37,7 +37,13 @@ def get_scenario(config):
     return cls(**config)
 
 
-def main(config):
+def main(config=None):
+    if not config:
+        logging.basicConfig(
+            format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
+            level=logging.INFO
+        )
+        config = get_args()
     max_runs = 1
     run_num = 0
     scenario = get_scenario(config)
@@ -70,9 +76,4 @@ def get_args():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
-        level=logging.INFO
-    )
-    config = get_args()
-    main(config)
+    main()
