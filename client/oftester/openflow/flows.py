@@ -1,6 +1,6 @@
 import copy
 
-from constants import *
+from oftester.constants import *
 
 
 def flow_loop_all_ports(dpid, table_id, priority=1):

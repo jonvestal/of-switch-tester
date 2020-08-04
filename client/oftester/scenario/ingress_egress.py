@@ -1,8 +1,8 @@
 import logging
 
-from constants import OFPP_IN_PORT
-from openflow import flows
-from scenario.model import Scenario
+from oftester.constants import OFPP_IN_PORT
+from oftester.openflow import flows
+from oftester.scenario.model import Scenario
 
 
 class IngressEgressQnqVlanScenario(Scenario):

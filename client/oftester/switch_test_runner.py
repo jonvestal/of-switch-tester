@@ -6,10 +6,11 @@ import time
 
 import yaml
 
-from scenario import basic as basic
-from scenario import ingress_egress as ingress
-from scenario import transit as transit
-from scenario import loop as loop
+from oftester.report.generator import ReportGenerator
+from oftester.scenario import basic as basic
+from oftester.scenario import ingress_egress as ingress
+from oftester.scenario import transit as transit
+from oftester.scenario import loop as loop
 
 clazz_map = {
     'pps': basic.PpsScenario,
@@ -36,29 +37,30 @@ def get_scenario(config):
     return cls(**config)
 
 
-def main(config):
+def main(config=None):
+    if not config:
+        logging.basicConfig(
+            format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
+            level=logging.INFO
+        )
+        config = get_args()
     max_runs = 1
     run_num = 0
     scenario = get_scenario(config)
+    report_generator = ReportGenerator(scenario)
     try:
         while run_num < max_runs:
             for i in range(len(scenario.packet_sizes)):
-                logging.info("Running %s test case, run number %i", scenario.name, run_num + 1)
-                size = scenario.current_packet_size()
-                logging.info("Packet size of %i", size)
-                scenario.delete_all_flows()
-                scenario.run()
-                time.sleep(10)  # need to wait until traffic has stopped
-                logging.info("Collecting data for %s with size %i for %i seconds",
-                            scenario.name, size, scenario.collection_interval)
-                time.sleep(scenario.collection_interval)
-                scenario.next_packet_size()
+                scenario.execute(run_num)
+                report_generator.generate_graph(i)
+                time.sleep(10)
             run_num += 1
     except KeyboardInterrupt:
         pass
     except Exception as e:
         logging.exception(e)
     scenario.delete_all_flows()
+    report_generator.report()
 
 
 def _parsecmdline():
@@ -74,9 +76,4 @@ def get_args():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
-        level=logging.INFO
-    )
-    config = get_args()
-    main(config)
+    main()
