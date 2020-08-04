@@ -82,7 +82,9 @@ class Scenario:
                      self.name, size, self.collection_interval)
         time.sleep(self.collection_interval)
         self.time_metrics[-1].stop = datetime.utcnow()
-        self.next_packet_size()
+        self.delete_all_flows()
+        if self.current_packet_idx < len(self.packet_sizes) -1:
+            self.next_packet_size()
 
 
     def next_packet_size(self):

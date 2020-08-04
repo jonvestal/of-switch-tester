@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+<body>
+    {% for item in packet_sizes %}
+<div>
+    <div> Packet size: {{item}}</div>
+    <img src="{{loop.index0}}.png">
+</div>
+{% endfor %}
+</body>
+</html>

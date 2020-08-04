@@ -6,6 +6,7 @@ import time
 
 import yaml
 
+from report.generator import ReportGenerator
 from scenario import basic as basic
 from scenario import ingress_egress as ingress
 from scenario import transit as transit
@@ -40,16 +41,20 @@ def main(config):
     max_runs = 1
     run_num = 0
     scenario = get_scenario(config)
+    report_generator = ReportGenerator(scenario)
     try:
         while run_num < max_runs:
             for i in range(len(scenario.packet_sizes)):
                 scenario.execute(run_num)
+                report_generator.generate_graph(i)
+                time.sleep(10)
             run_num += 1
     except KeyboardInterrupt:
         pass
     except Exception as e:
         logging.exception(e)
     scenario.delete_all_flows()
+    report_generator.report()
 
 
 def _parsecmdline():
