@@ -1,5 +1,10 @@
-name: swap
-packet_size: 9000
+name: vxlan
+packet_sizes:
+  - 100
+  - 500
+  - 1500
+  - 4000
+  - 9000
 collection_interval: 120
 environment:
   otsdb_host: localhost

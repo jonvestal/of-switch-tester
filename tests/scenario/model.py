@@ -52,12 +52,22 @@ class Environment:
 
 class Scenario:
 
-    def __init__(self, name, environment, packet_size=9000, collection_interval=120):
+    def __init__(self, name, environment, packet_sizes=None, collection_interval=120):
         self.name = name
-        self.packet_size = packet_size
+        if not packet_sizes:
+            packet_sizes = [9000]
+        self.packet_sizes = packet_sizes
+        self.current_packet_idx = 0
         self.collection_interval = collection_interval
         self.environment = Environment(**environment)
         self.session = requests.Session()
+
+    def next_packet_size(self):
+        self.current_packet_idx += 1
+        return self.current_packet_size()
+
+    def current_packet_size(self):
+        return self.packet_sizes[self.current_packet_idx]
 
     def delete_all_flows(self, dpid=None):
         if dpid:
