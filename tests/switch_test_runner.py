@@ -43,16 +43,7 @@ def main(config):
     try:
         while run_num < max_runs:
             for i in range(len(scenario.packet_sizes)):
-                logging.info("Running %s test case, run number %i", scenario.name, run_num + 1)
-                size = scenario.current_packet_size()
-                logging.info("Packet size of %i", size)
-                scenario.delete_all_flows()
-                scenario.run()
-                time.sleep(10)  # need to wait until traffic has stopped
-                logging.info("Collecting data for %s with size %i for %i seconds",
-                            scenario.name, size, scenario.collection_interval)
-                time.sleep(scenario.collection_interval)
-                scenario.next_packet_size()
+                scenario.execute(run_num)
             run_num += 1
     except KeyboardInterrupt:
         pass

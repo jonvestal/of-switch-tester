@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import datetime
 
 import requests
 
@@ -49,6 +50,9 @@ class Environment:
     def sw_by_dpid(self, dpid):
         return self.switches[dpid]
 
+class ScenarioTimestamps:
+    pass
+
 
 class Scenario:
 
@@ -61,9 +65,29 @@ class Scenario:
         self.collection_interval = collection_interval
         self.environment = Environment(**environment)
         self.session = requests.Session()
+        self.time_metrics = [ScenarioTimestamps()]
+
+    def run(self):
+        raise NotImplementedError()
+
+    def execute(self, run_num):
+        logging.info("Running %s test case, run number %i", self.name, run_num + 1)
+        size = self.current_packet_size()
+        logging.info("Packet size of %i", size)
+        self.delete_all_flows()
+        self.time_metrics[-1].start = datetime.utcnow()
+        self.run()
+        time.sleep(10)  # need to wait until traffic has stopped
+        logging.info("Collecting data for %s with size %i for %i seconds",
+                     self.name, size, self.collection_interval)
+        time.sleep(self.collection_interval)
+        self.time_metrics[-1].stop = datetime.utcnow()
+        self.next_packet_size()
+
 
     def next_packet_size(self):
         self.current_packet_idx += 1
+        self.time_metrics.append(ScenarioTimestamps())
         return self.current_packet_size()
 
     def current_packet_size(self):
@@ -168,7 +192,8 @@ class Scenario:
         flowmods = flows.flow_snake(dpid, switch.snake_start_port, switch.snake_end_port, 0)
         for flow in flowmods:
             self.add_flow(flow)
+        self.time_metrics[-1].basic_flows_installed = datetime.utcnow()
         self.bring_switch_full_load(dpid, -1, size)
-
+        self.time_metrics[-1].traffic_injected = datetime.utcnow()
 
 
