@@ -1,8 +1,11 @@
-name: vxlan
+name: vlan
 packet_sizes:
   - 100
   - 500
-collection_interval: 20
+  - 1500
+  - 4000
+  - 9000
+collection_interval: 120
 environment:
   otsdb_host: localhost
   otsdb_port: 4242

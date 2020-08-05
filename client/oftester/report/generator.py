@@ -25,7 +25,7 @@ class ReportGenerator:
         fmt = "%Y/%m/%d-%H:%M:%S"
 
         url = "http://{0}:{1}/q?start={2}&end={3}&m=sum:rate:port.packets" \
-              "&o=&m=sum:rate:port.bits&o=axis%20x1y2&yrange=[0:]&wxh=1833x760&style=linespoint&png" \
+              "&o=&m=sum:rate:port.bits&o=axis%20x1y2&ylabel=y&yrange=[0:]&wxh=1833x760&style=linespoint&png" \
                   .format(self.scenario.environment.otsdb_host, self.scenario.environment.otsdb_port,
                           start.strftime(fmt), stop.strftime(fmt))
         resp = requests.get(url, stream=True)
