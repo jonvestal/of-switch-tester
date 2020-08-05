@@ -14,7 +14,8 @@ class ReportGenerator:
 
     def report(self):
         template = self.env.get_template('index.html')
-        template.stream(packet_sizes=self.scenario.packet_sizes).dump(base_dir + '/index.html')
+        template.stream(name=self.scenario.name,
+                        packet_sizes=self.scenario.packet_sizes).dump(base_dir + '/' + self.scenario.name + '.html')
 
     def generate_graph(self, idx):
         time_metrics = self.scenario.time_metrics[idx]
@@ -29,6 +30,6 @@ class ReportGenerator:
                           start.strftime(fmt), stop.strftime(fmt))
         resp = requests.get(url, stream=True)
         if resp.status_code == 200:
-            with open(base_dir + '/%d.png' % idx, 'wb') as f:
+            with open(base_dir + '/%s_%d.png' % (self.scenario.name, idx), 'wb') as f:
                 for chunk in resp.iter_content(1024):
                     f.write(chunk)
