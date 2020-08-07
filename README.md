@@ -46,10 +46,10 @@ Provides a single rest endpoint
 
 Where
 
-switchid = DPID of the target switch
-port = port number to send the Packet Out
-pkt_size = total size of the packet including the header
-count = number of packet out's to send (need at least 1)
+- switchid = DPID of the target switch
+- port = port number to send the Packet Out
+- pkt_size = total size of the packet including the header
+- count = number of packet out's to send (need at least 1)
 
 Packet Out will be a UDP packet with a payload of all 0's and these for
 the header:
@@ -62,6 +62,18 @@ IP_DST = '2.2.2.2'
 IP_PROTO = inet.IPPROTO_UDP
 
 ### Run Scenarios
+- Setup python virtual environment if using (yes Kevin this if for you):
+
+`python3 -m venv venv`
+
+- If using virtual environment (yes still for Kevin):
+
+`. ./venv/bin/activate`
+
+- Install requirements no matter if using virtual environment or not (not just for Kevin)
+
+`pip install requirements`
+
 - Install of-tester at least in development mode by:
 
 `python setup.py develop`
