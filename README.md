@@ -6,8 +6,8 @@ switch based on Ryu.
 ## Requirements
 
 - An OpenFlow switch
-- docker
-- docker-compose > 2.1
+- docker  > 2.1
+- docker-compose > 1.25.5
 - python3
 - Python Requests package
 
