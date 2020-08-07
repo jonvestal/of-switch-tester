@@ -72,7 +72,7 @@ IP_PROTO = inet.IPPROTO_UDP
 
 - Install requirements no matter if using virtual environment or not (not just for Kevin)
 
-`pip install requirements`
+`pip install -r client/requirements.txt`
 
 - Install of-tester at least in development mode by:
 
