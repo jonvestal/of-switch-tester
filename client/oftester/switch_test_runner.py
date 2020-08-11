@@ -22,6 +22,8 @@ clazz_map = {
     'vxlan-header': basic.VxlanScenarioShort,
     'swap': basic.SwapScenario,
     'copy': basic.CopyScenario,
+    'rx-timestamp': basic.RxTimestampScenario,
+    'tx-timestamp': basic.TxTimestampScenario,
     'metadata': basic.MetadataScenario,
     'ingress-egress-qnq-vlan': ingress.IngressEgressQnqVlanScenario,
     'ingress-egress-qnq-vxlan': ingress.IngressEgressQnqVxlanScenario,

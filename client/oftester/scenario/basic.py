@@ -71,6 +71,26 @@ class CopyScenario(Scenario):
             self.add_flow(flows.flow_copy_fields(sw.dpid, sw.snake_start_port, OFPP_IN_PORT))
 
 
+class RxTimestampScenario(Scenario):
+    def run(self):
+        for sw in self.environment.switches.values():
+            self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            logging.info("Switch under full load adding rx_timestamp fields rules")
+            self.add_flow(flows.pass_through_flow(sw.dpid, sw.snake_end_port, OFPP_IN_PORT))
+            self.add_flow(flows.flow_copy_fields(sw.dpid, sw.snake_start_port, OFPP_IN_PORT,
+                                                 n_bits=64, src='novi_rx_timestamp', dst='novi_packet_offset'))
+
+
+class TxTimestampScenario(Scenario):
+    def run(self):
+        for sw in self.environment.switches.values():
+            self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            logging.info("Switch under full load adding tx_timestamp fields rules")
+            self.add_flow(flows.pass_through_flow(sw.dpid, sw.snake_end_port, OFPP_IN_PORT))
+            self.add_flow(flows.flow_copy_fields(sw.dpid, sw.snake_start_port, OFPP_IN_PORT,
+                                                 n_bits=64, src='novi_tx_timestamp', dst='novi_packet_offset'))
+
+
 class MetadataScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
