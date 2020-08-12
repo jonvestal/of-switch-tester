@@ -1,7 +1,7 @@
 import logging
 import time
 
-from oftester.openflow import flows
+from oftester.openflow import basic_flows as flows
 from oftester.scenario.model import Scenario
 
 
@@ -14,7 +14,7 @@ class PpsLoopScenario(Scenario):
 
 class GoToTableScenario(Scenario):
     def run(self):
-        logging.info("Performing GoTo Table test")
+        logging.info('Performing GoTo Table test')
         for sw in self.environment.switches.values():
             self.add_flow(flows.flow_loop_all_ports(sw.dpid, 0, 100))
             self.add_flow(flows.flow_loop_all_ports(sw.dpid, 5, 100))
@@ -27,6 +27,6 @@ class GoToTableScenario(Scenario):
 
             table = 5
             while table > 0:
-                logging.info("collecting data for tables = %i", 5 - table + 1)
+                logging.info('Collecting data for tables = %i', 5 - table + 1)
                 time.sleep(self.collection_interval)
                 self.add_flow(flows.flow_goto_table(sw.dpid, 0, table, 200))

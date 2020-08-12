@@ -20,7 +20,7 @@ def flow_loop_all_ports(dpid, table_id, priority=1):
         'match': {},
         'actions': [
             {
-                'type': "OUTPUT",
+                'type': 'OUTPUT',
                 'port': OFPP_IN_PORT
             }
         ]
@@ -45,14 +45,14 @@ def flow_goto_table(dpid, table_id, dst_table, priority):
         'match': {},
         'actions': [
             {
-                'type': "GOTO_TABLE",
+                'type': 'GOTO_TABLE',
                 'table_id': dst_table
             }
         ]
     }
 
 
-def metadata_milti_table_flows(dpid, in_port, out_port, priority=2000):
+def metadata_multi_table_flows(dpid, in_port, out_port, priority=2000):
     return [
         {
             'dpid': dpid,
@@ -60,14 +60,14 @@ def metadata_milti_table_flows(dpid, in_port, out_port, priority=2000):
             'table_id': 0,
             'priority': priority,
             'match': {'in_port': in_port},
-            "actions": [
+            'actions': [
                 {
-                    "type": "WRITE_METADATA",
-                    "metadata": 1,
-                    "metadata_mask": 1
+                    'type': 'WRITE_METADATA',
+                    'metadata': 1,
+                    'metadata_mask': 1
                 },
                 {
-                    'type': "GOTO_TABLE",
+                    'type': 'GOTO_TABLE',
                     'table_id': 1
                 }
             ]
@@ -77,7 +77,7 @@ def metadata_milti_table_flows(dpid, in_port, out_port, priority=2000):
             'cookie': COOKIE_METADATA_OUT,
             'table_id': 1,
             'priority': priority,
-            "actions": [
+            'actions': [
                 {'type': 'OUTPUT', 'port': out_port}
             ]
         },
@@ -86,15 +86,15 @@ def metadata_milti_table_flows(dpid, in_port, out_port, priority=2000):
 
 def pass_through_flow(dpid, in_port, out_port, priority=1000):
     return {
-            'dpid': dpid,
-            'cookie': COOKIE_PASS_THROUGH,
-            'table_id': 0,
-            'priority': priority,
-            'match': {'in_port': in_port},
-            "actions": [
-                {'type': 'OUTPUT', 'port': out_port}
-            ]
-        }
+        'dpid': dpid,
+        'cookie': COOKIE_PASS_THROUGH,
+        'table_id': 0,
+        'priority': priority,
+        'match': {'in_port': in_port},
+        'actions': [
+            {'type': 'OUTPUT', 'port': out_port}
+        ]
+    }
 
 
 def flow_snake(dpid, start_port, end_port, table_id, priority=1000):
@@ -151,7 +151,7 @@ def flow_snake(dpid, start_port, end_port, table_id, priority=1000):
     return flowmods
 
 
-def flow_vlan_push_pop(dpid, in_port, out_port, action, vid=None, outer_vid=None, table_id=0, priority=2000):
+def flow_vlan_push_pop(dpid, in_port, out_port, action, outer_vid=None, inner_vid=None, table_id=0, priority=2000):
     """
     Creates a flow that will either push an 8100 VLAN and push new 8100 VLAN if outer_vid is not None
     or pop an 8100 VLAN.
@@ -160,8 +160,8 @@ def flow_vlan_push_pop(dpid, in_port, out_port, action, vid=None, outer_vid=None
     :param in_port: (int) port to match for incoming packets
     :param out_port: (out) port to send packet out
     :param action: (string) PUSH/POP if PUSH will add header, POP removes header
-    :param vid: (int) vlan id if not set will not push a vlan
     :param outer_vid: (int) outer vlan id for QnQ
+    :param inner_vid: (int) vlan id if not set will not push a vlan
     :param table_id: (int) table to put the flow into
     :param priority: (int) priority of the flow
     :return: (dict)
@@ -171,16 +171,17 @@ def flow_vlan_push_pop(dpid, in_port, out_port, action, vid=None, outer_vid=None
         'port': out_port
     }]
     if action == 'push':
-        actions.insert(0, {'type': 'PUSH_VLAN', 'ethertype': 33024})
+        actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
+        if inner_vid is not None:
+            actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': inner_vid})
 
-        if vid is not None:
-            actions.insert(1, {'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': vid})
-            if outer_vid is not None:
-                actions.insert(2, {'type': 'PUSH_VLAN', 'ethertype': 33024})
-                actions.insert(3, {'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': outer_vid})
+        if outer_vid is not None:
+            if inner_vid:
+                actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
+            actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': outer_vid})
 
     else:
-        actions.insert(0, {'type': 'POP_VLAN'})
+        actions.append({'type': 'POP_VLAN'})
 
     return {
         'dpid': dpid,
@@ -202,7 +203,6 @@ def flow_vxlan_push(dpid, in_port, out_port, table_id=0, priority=2000,
     :param dpid: Switch DPID
     :param in_port: (int) port to match for incoming packets
     :param out_port: (int) port to send packet out
-    :param action: (string) PUSH/POP  if PUSH will add header, POP removes header
     :param table_id: (int) table to put flow into
     :param priority: (int) priority of the flow
     :param src_ip: (string) ip address to use in src_ip VxLAN header
@@ -367,250 +367,4 @@ def flow_set_fields(dpid, in_port, out_port, table_id=0, priority=2000, values=N
         'priority': priority,
         'match': {'in_port': in_port},
         'actions': actions
-    }
-
-
-def flow_ingress_vlan(dpid, in_port, out_port, inner_vid=46, outer_vid=None, transit_vid=48,
-                      table_id_0=0, table_id_1=1, priority=2000):
-    """
-    Creates flows that will pop 8100 VLAN and replace 8100 VLAN or flow that will replace 8100 VLAN.
-
-    :param dpid: Switch DPID
-    :param in_port: (int) port to match for incoming packets
-    :param out_port: (out) port to send packet out
-    :param inner_vid: (int) inner vlan id
-    :param outer_vid: (int) outer vlan id
-    :param transit_vid: (int) transit vlan id
-    :param table_id_0: (int) table to pop outer vlan
-    :param table_id_1: (int) table to pop inner vlan
-    :param priority: (int) priority of the flow
-    :return: (dict)
-    """
-
-    flows = []
-    table_id = table_id_0
-
-    if outer_vid is not None:
-        flows.append({
-            'dpid': dpid,
-            'cookie': COOKIE_INGRESS_VLAN,
-            'table_id': table_id_0,
-            'priority': priority,
-            'match': {
-                'in_port': in_port,
-                'vlan_vid': outer_vid
-            },
-            'actions': [{'type': 'POP_VLAN'},
-                        {'type': "GOTO_TABLE", 'table_id': table_id_1}]
-        })
-        table_id = table_id_1
-
-    flows.append({
-        'dpid': dpid,
-        'cookie': COOKIE_INGRESS_VLAN,
-        'table_id': table_id,
-        'priority': priority,
-        'match': {
-            'in_port': in_port,
-            'vlan_vid': inner_vid
-        },
-        'actions': [{'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': transit_vid},
-                    {'type': 'OUTPUT', 'port': out_port}]
-    })
-
-    return flows
-
-
-def flow_egress_vlan(dpid, in_port, out_port, inner_vid=46, outer_vid=None, transit_vid=48,
-                     table_id=0, priority=2000):
-    """
-    Creates a flow that will replace 8100 VLAN and push new 8100 VLAN if outer_vid is not None.
-
-    :param dpid: Switch DPID
-    :param in_port: (int) port to match for incoming packets
-    :param out_port: (out) port to send packet out
-    :param inner_vid: (int) inner vlan id
-    :param outer_vid: (int) outer vlan id
-    :param transit_vid: (int) transit vlan id
-    :param table_id: (int) table to put the flow into
-    :param priority: (int) priority of the flow
-    :return: (dict)
-    """
-
-    actions = [{'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': inner_vid}]
-
-    if outer_vid is not None:
-        actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
-        actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': outer_vid})
-
-    actions.append({'type': 'OUTPUT', 'port': out_port})
-
-    return {
-        'dpid': dpid,
-        'cookie': COOKIE_EGRESS_VLAN,
-        'table_id': table_id,
-        'priority': priority,
-        'match': {
-            'in_port': in_port,
-            'vlan_vid': transit_vid
-        },
-        'actions': actions
-    }
-
-
-def flow_ingress_vxlan(dpid, in_port, out_port, inner_vid=46, outer_vid=None,
-                       table_id_0=0, table_id_1=1, priority=2000,
-                       src_ip='192.168.0.1', dst_ip='192.168.0.2',
-                       src_mac='11:22:33:44:55:66', dst_mac='aa:bb:cc:dd:ee:ff',
-                       udp_port=5000, vni=4242):
-    """
-    Creates flows that will pop two 8100 VLAN tags and push VxLAN.
-
-    :param dpid: Switch DPID
-    :param in_port: (int) port to match for incoming packets
-    :param out_port: (out) port to send packet out
-    :param inner_vid: (int) inner vlan id
-    :param outer_vid: (int) outer vlan id
-    :param table_id_0: (int) table to pop outer vlan
-    :param table_id_1: (int) table to pop inner vlan
-    :param priority: (int) priority of the flow
-    :param src_ip: (string) ip address to use in src_ip VxLAN header
-    :param dst_ip: (string) ip address to use in dst_ip VxLAN header
-    :param src_mac: (string) mac to use in eth_src VxLAN header
-    :param dst_mac: (string) mac to use in eth_dst VxLAN header
-    :param udp_port: (int) udp_port for the VxLAN header
-    :param vni: (int) VxLAN ID
-    :return: (dict)
-    """
-
-    flows = []
-    table_id = table_id_0
-
-    if outer_vid is not None:
-        flows.append({
-            'dpid': dpid,
-            'cookie': COOKIE_INGRESS_VXLAN,
-            'table_id': table_id_0,
-            'priority': priority,
-            'match': {
-                'in_port': in_port,
-                'vlan_vid': outer_vid
-            },
-            'actions': [{'type': 'POP_VLAN'},
-                        {'type': "GOTO_TABLE", 'table_id': table_id_1}]
-        })
-        table_id = table_id_1
-
-    flows.append({
-        'dpid': dpid,
-        'cookie': COOKIE_INGRESS_VXLAN,
-        'table_id': table_id,
-        'priority': priority,
-        'match': {
-            'in_port': in_port,
-            'vlan_vid': inner_vid
-        },
-        'actions': [{'type': 'POP_VLAN'},
-                    {'type': 'NOVI_PUSH_VXLAN', 'eth_src': src_mac, 'eth_dst': dst_mac,
-                     'ipv4_src': src_ip, 'ipv4_dst': dst_ip, 'udp_src': udp_port, 'vni': vni},
-                    {'type': 'OUTPUT', 'port': out_port}]
-    })
-
-    return flows
-
-
-def flow_egress_vxlan(dpid, in_port, out_port, inner_vid=46, outer_vid=None, vni=4242,
-                      table_id=0, priority=2000):
-    """
-    Creates a flow that will pop VxLAN and push two 8100 VLAN tags.
-
-    :param dpid: Switch DPID
-    :param in_port: (int) port to match for incoming packets
-    :param out_port: (out) port to send packet out
-    :param inner_vid: (int) inner vlan id
-    :param outer_vid: (int) outer vlan id
-    :param vni: (int) VxLAN ID
-    :param table_id: (int) table to put the flow into
-    :param priority: (int) priority of the flow
-    :return: (dict)
-    """
-
-    actions = [{'type': 'NOVI_POP_VXLAN'},
-               {'type': 'PUSH_VLAN', 'ethertype': 33024},
-               {'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': inner_vid}]
-
-    if outer_vid is not None:
-        actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
-        actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': outer_vid})
-
-    actions.append({'type': 'OUTPUT', 'port': out_port})
-
-    return {
-        'dpid': dpid,
-        'cookie': COOKIE_EGRESS_VXLAN,
-        'table_id': table_id,
-        'priority': priority,
-        'match': {
-            'in_port': in_port,
-            "eth_type": 2048,
-            "ip_proto": 17,
-            "udp_dst": 4789,
-            'tunnel_id': vni
-        },
-        'actions': actions
-    }
-
-
-def flow_transit_vlan(dpid, in_port, out_port, transit_vid=48, table_id=0, priority=2000):
-    """
-    Creates a flow that will match 8100 VLAN and throw packet to out port.
-
-    :param dpid: Switch DPID
-    :param in_port: (int) port to match for incoming packets
-    :param out_port: (out) port to send packet out
-    :param transit_vid: (int) transit vlan id
-    :param table_id: (int) table to put the flow into
-    :param priority: (int) priority of the flow
-    :return: (dict)
-    """
-
-    return {
-        'dpid': dpid,
-        'cookie': COOKIE_TRANSIT_VLAN,
-        'table_id': table_id,
-        'priority': priority,
-        'match': {
-            'in_port': in_port,
-            'vlan_vid': transit_vid
-        },
-        'actions': [{'type': 'OUTPUT', 'port': out_port}]
-    }
-
-
-def flow_transit_vxlan(dpid, in_port, out_port,  table_id=0, priority=2000, vni=4242):
-    """
-    Creates a flow that will match VxLAN id and throw packet to out port.
-
-    :param dpid: Switch DPID
-    :param in_port: (int) port to match for incoming packets
-    :param out_port: (out) port to send packet out
-    :param table_id: (int) table to put the flow into
-    :param priority: (int) priority of the flow
-    :param vni: (int) VxLAN ID
-    :return: (dict)
-    """
-
-    return {
-        'dpid': dpid,
-        'cookie': COOKIE_TRANSIT_VXLAN,
-        'table_id': table_id,
-        'priority': priority,
-        'match': {
-            'in_port': in_port,
-            "eth_type": 2048,
-            "ip_proto": 17,
-            "udp_dst": 4789,
-            'tunnel_id': vni
-        },
-        'actions': [{'type': 'OUTPUT', 'port': out_port}]
     }

@@ -1,14 +1,13 @@
+from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from ryu.base import app_manager
-from ryu.controller import ofp_event
 from ryu.controller import dpset
+from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, DEAD_DISPATCHER
 from ryu.controller.handler import set_ev_cls
-from ryu.ofproto import ofproto_v1_3
 from ryu.lib import dpid as dpid_lib
-from ryu.app.wsgi import ControllerBase, WSGIApplication, route, Response
-from ryu.lib.packet import ethernet, ipv4, udp, packet
+from ryu.lib.packet import ethernet, ipv4, udp, packet, vlan
 from ryu.ofproto import ether, inet
-
+from ryu.ofproto import ofproto_v1_3
 
 SWITCHID_PATTERN = dpid_lib.DPID_PATTERN + r'|all'
 VLANID_PATTERN = r'[0-9]{1,4}|all'
@@ -25,15 +24,34 @@ IP_PROTO = inet.IPPROTO_UDP
 pipeline_tester_instance_name = "PipelineTesterInstance"
 
 
-def make_packet(pkt_size):
+def make_packet(pkt_size, outer_vlan=0, inner_vlan=0):
+    if outer_vlan or inner_vlan:
+        DL_TYPE = ether.ETH_TYPE_8021Q
     e = ethernet.ethernet(DL_DST, DL_SRC, DL_TYPE)
     i = ipv4.ipv4(total_length=0, src=IP_SRC, dst=IP_DST, proto=IP_PROTO, ttl=1)
     u = udp.udp(src_port=5000, dst_port=10000)
-    payload_size = pkt_size - (len(e) + len(i) + len(u))
+
+    outer_len = 0
+    outer_tag = None
+    if outer_vlan:
+        outer_tag = vlan.vlan(vid=outer_vlan, ethertype=ether.ETH_TYPE_8021Q, cfi=1)
+        outer_len = len(outer_tag)
+
+    inner_len = 0
+    inner_tag = None
+    if inner_vlan:
+        inner_tag = vlan.vlan(vid=inner_vlan, ethertype=ether.ETH_TYPE_8021Q, cfi=1)
+        inner_len = len(inner_tag)
+
+    payload_size = pkt_size - (len(e) + len(i) + len(u) + inner_len + outer_len)
     payload = bytearray(payload_size if payload_size > 0 else 0)
 
     p = packet.Packet()
     p.add_protocol(e)
+    if outer_tag:
+        p.add_protocol(outer_tag)
+    if inner_tag:
+        p.add_protocol(inner_tag)
     p.add_protocol(i)
     p.add_protocol(u)
     p.add_protocol(payload)
@@ -83,18 +101,20 @@ class PipelineTesterController(ControllerBase):
         super(PipelineTesterController, self).__init__(req, link, data, **config)
         self.pipeline_tester_app = data[pipeline_tester_instance_name]
 
-    @route('tester', '/tpn/packet_out/{switchid}/{port}/{pkt_size}/{count}', methods=['POST'])
+    @route('tester', '/tpn/packet_out/{switchid}/{port}/{outer_vlan}/{inner_vlan}/{pkt_size}/{count}', methods=['POST'])
     def send_packetout(self, req, **kwargs):
         app = self.pipeline_tester_app
         switchid = int(kwargs['switchid'], 0)
         pkt_size = int(kwargs['pkt_size'], 0)
+        outer_vlan = int(kwargs['outer_vlan'], 0)
+        inner_vlan = int(kwargs['inner_vlan'], 0)
         port = int(kwargs['port'], 0)
 
         count = 1
         if 'count' in kwargs:
             count = int(kwargs['count'], 0)
 
-        p = make_packet(pkt_size)
+        p = make_packet(pkt_size, outer_vlan, inner_vlan)
         while count > 0:
             app.send_packet(switchid, p, port)
             count -= 1
