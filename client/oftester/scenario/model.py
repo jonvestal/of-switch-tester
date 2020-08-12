@@ -4,7 +4,7 @@ from datetime import datetime
 
 import requests
 
-from oftester.openflow import flows
+from oftester.openflow import basic_flows as flows
 
 HTTP_HEADERS = {'Content-Type': 'application/json'}
 
@@ -32,7 +32,7 @@ class Switch:
             try:
                 return str(int(dpid.replace(':', ''), 16))
             except Exception as e:
-                raise ValueError("Unknown DPID format of %s" % dpid)
+                raise ValueError('Unknown DPID format of %s' % dpid)
 
 
 class Environment:
@@ -71,14 +71,14 @@ class Scenario:
         raise NotImplementedError()
 
     def execute(self, run_num):
-        logging.info("Running %s test case, run number %i", self.name, run_num + 1)
+        logging.info('Running %s test case, run number %i', self.name, run_num + 1)
         size = self.current_packet_size()
-        logging.info("Packet size of %i", size)
+        logging.info('Packet size of %i', size)
         self.delete_all_flows()
         self.time_metrics[-1].start = datetime.utcnow()
         self.run()
         time.sleep(10)  # need to wait until traffic has stopped
-        logging.info("Collecting data for %s with size %i for %i seconds",
+        logging.info('Collecting data for %s with size %i for %i seconds',
                      self.name, size, self.collection_interval)
         time.sleep(self.collection_interval)
         self.time_metrics[-1].stop = datetime.utcnow()
@@ -133,9 +133,9 @@ class Scenario:
         response.raise_for_status()
         return response
 
-    def send_packet_out(self, dpid, port, pkt_size, count):
-        url = 'http://{}:{}/tpn/packet_out/{}/{}/{}/{}'.format(
-            self.environment.ryu_host, self.environment.ryu_port, dpid, port, pkt_size, count)
+    def send_packet_out(self, dpid, port, outer_vlan, inner_vlan, pkt_size, count):
+        url = 'http://{}:{}/tpn/packet_out/{}/{}/{}/{}/{}/{}'.format(
+            self.environment.ryu_host, self.environment.ryu_port, dpid, port, outer_vlan, inner_vlan, pkt_size, count)
         resp = self.session.post(url)
         resp.raise_for_status()
         logging.debug('Sending %i packet out to port %i of size %i', count, port, pkt_size)
@@ -175,12 +175,12 @@ class Scenario:
 
         return growth_rate < 0.05
 
-    def bring_switch_full_load(self, dpid, port, size, sleep=30):
+    def bring_switch_full_load(self, dpid, port, size, outer_vlan=0, inner_vlan=0, sleep=30):
         logging.info('Bringing switch to full load')
         done = False
         pkts_sent = 0
         while not done:
-            self.send_packet_out(dpid, port, size, 1)
+            self.send_packet_out(dpid, port, outer_vlan, inner_vlan, size, 1)
             pkts_sent += 1
             logging.debug('Injected %i packets per port in total', pkts_sent)
             time.sleep(1)
@@ -189,13 +189,13 @@ class Scenario:
                      pkts_sent, size, port, sleep)
         time.sleep(sleep)
 
-    def prepare_snake_flows(self, dpid, size):
+    def prepare_snake_flows(self, dpid, size, outer_vlan=0, inner_vlan=0):
         switch = self.environment.sw_by_dpid(dpid)
         flowmods = flows.flow_snake(dpid, switch.snake_start_port, switch.snake_end_port, 0)
         for flow in flowmods:
             self.add_flow(flow)
         self.time_metrics[-1].basic_flows_installed = datetime.utcnow()
-        self.bring_switch_full_load(dpid, -1, size)
+        self.bring_switch_full_load(dpid, -1, size, outer_vlan, inner_vlan)
         self.time_metrics[-1].traffic_injected = datetime.utcnow()
 
 
