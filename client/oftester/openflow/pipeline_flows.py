@@ -293,7 +293,6 @@ def flow_transit_vlan(dpid, in_port, out_port, transit_vid=48, priority=2000):
     :param in_port: (int) port to match for incoming packets
     :param out_port: (out) port to send packet out
     :param transit_vid: (int) transit vlan id
-    :param table_id: (int) table to put the flow into
     :param priority: (int) priority of the flow
     :return: (dict)
     """
@@ -302,15 +301,13 @@ def flow_transit_vlan(dpid, in_port, out_port, transit_vid=48, priority=2000):
         {
             'dpid': dpid,
             'cookie': COOKIE_TRANSIT_VLAN,
-            'table_id': INPUT_TABLE_ID,
+            'table_id': TRANSIT_TABLE_ID,
             'priority': priority,
             'match': {
                 'in_port': in_port,
+                'vlan_vid': transit_vid
             },
-            'actions': [{
-                'type': 'GOTO_TABLE',
-                'table_id': EGRESS_TABLE_ID
-            }]
+            'actions': [{'type': 'OUTPUT', 'port': out_port}]
         },
         {
             'dpid': dpid,
@@ -328,14 +325,17 @@ def flow_transit_vlan(dpid, in_port, out_port, transit_vid=48, priority=2000):
         {
             'dpid': dpid,
             'cookie': COOKIE_TRANSIT_VLAN,
-            'table_id': TRANSIT_TABLE_ID,
+            'table_id': INPUT_TABLE_ID,
             'priority': priority,
             'match': {
                 'in_port': in_port,
-                'vlan_vid': transit_vid
             },
-            'actions': [{'type': 'OUTPUT', 'port': out_port}]
-        }]
+            'actions': [{
+                'type': 'GOTO_TABLE',
+                'table_id': EGRESS_TABLE_ID
+            }]
+        }
+    ]
 
 
 def flow_transit_vxlan(dpid, in_port, out_port, priority=2000, vni=4242):
@@ -354,19 +354,6 @@ def flow_transit_vxlan(dpid, in_port, out_port, priority=2000, vni=4242):
         {
             'dpid': dpid,
             'cookie': COOKIE_TRANSIT_VXLAN,
-            'table_id': INPUT_TABLE_ID,
-            'priority': priority,
-            'match': {
-                'in_port': in_port
-            },
-            'actions': [{
-                'type': 'GOTO_TABLE',
-                'table_id': TRANSIT_TABLE_ID
-            }]
-        },
-        {
-            'dpid': dpid,
-            'cookie': COOKIE_TRANSIT_VXLAN,
             'table_id': TRANSIT_TABLE_ID,
             'priority': priority,
             'match': {
@@ -377,4 +364,18 @@ def flow_transit_vxlan(dpid, in_port, out_port, priority=2000, vni=4242):
                 'tunnel_id': vni
             },
             'actions': [{'type': 'OUTPUT', 'port': out_port}]
-        }]
+        },
+        {
+            'dpid': dpid,
+            'cookie': COOKIE_TRANSIT_VXLAN,
+            'table_id': INPUT_TABLE_ID,
+            'priority': priority,
+            'match': {
+                'in_port': in_port
+            },
+            'actions': [{
+                'type': 'GOTO_TABLE',
+                'table_id': TRANSIT_TABLE_ID
+            }]
+        }
+    ]

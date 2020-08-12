@@ -7,7 +7,7 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, DEAD_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.lib import dpid as dpid_lib
-from ryu.lib.packet import ethernet, ipv4, udp, packet, vlan
+from ryu.lib.packet import ethernet, ipv4, udp, packet, vlan, vxlan
 from ryu.ofproto import ether, inet
 from ryu.ofproto import ofproto_v1_3
 
@@ -18,7 +18,6 @@ REQUIREMENTS = {'switchid': SWITCHID_PATTERN,
 
 DL_DST = '11:22:33:44:55:66'
 DL_SRC = '66:55:44:33:22:11'
-DL_TYPE = ether.ETH_TYPE_IP
 IP_SRC = '1.1.1.1'
 IP_DST = '2.2.2.2'
 IP_PROTO = inet.IPPROTO_UDP
@@ -26,12 +25,16 @@ IP_PROTO = inet.IPPROTO_UDP
 pipeline_tester_instance_name = "PipelineTesterInstance"
 
 
-def make_packet(pkt_size, outer_vlan=0, inner_vlan=0):
+def make_packet(pkt_size, outer_vlan=0, inner_vlan=0, vni=0):
+    dl_type = ether.ETH_TYPE_IP
     if outer_vlan or inner_vlan:
-        DL_TYPE = ether.ETH_TYPE_8021Q
-    e = ethernet.ethernet(DL_DST, DL_SRC, DL_TYPE)
+        dl_type = ether.ETH_TYPE_8021Q
+    e = ethernet.ethernet(DL_DST, DL_SRC, dl_type)
     i = ipv4.ipv4(total_length=0, src=IP_SRC, dst=IP_DST, proto=IP_PROTO, ttl=1)
-    u = udp.udp(src_port=5000, dst_port=10000)
+    dst_udp_port = 10000
+    if vni:
+        dst_udp_port = 4789
+    u = udp.udp(src_port=5000, dst_port=dst_udp_port)
 
     outer_len = 0
     outer_tag = None
@@ -44,8 +47,13 @@ def make_packet(pkt_size, outer_vlan=0, inner_vlan=0):
     if inner_vlan:
         inner_tag = vlan.vlan(vid=inner_vlan, ethertype=ether.ETH_TYPE_8021Q, cfi=1)
         inner_len = len(inner_tag)
+    vxlan_len = 0
+    vxlan_tag = None
+    if vni:
+        vxlan_tag = vxlan.vxlan(vni)
+        vxlan_len = len(vxlan_tag)
 
-    payload_size = pkt_size - (len(e) + len(i) + len(u) + inner_len + outer_len)
+    payload_size = pkt_size - (len(e) + len(i) + len(u) + inner_len + outer_len + vxlan_len)
     payload = bytearray(payload_size if payload_size > 0 else 0)
 
     p = packet.Packet()
@@ -56,6 +64,8 @@ def make_packet(pkt_size, outer_vlan=0, inner_vlan=0):
         p.add_protocol(inner_tag)
     p.add_protocol(i)
     p.add_protocol(u)
+    if vxlan_tag:
+        p.add_protocol(vxlan_tag)
     p.add_protocol(payload)
 
     return p
@@ -115,13 +125,14 @@ class PipelineTesterController(ControllerBase):
         pkt_size = payload['pkt_size']
         outer_vlan = payload['outer_vlan']
         inner_vlan = payload['inner_vlan']
+        vni = payload['vni']
         port = payload['port']
 
         count = 1
         if 'count' in payload:
             count = payload['count']
 
-        p = make_packet(pkt_size, outer_vlan, inner_vlan)
+        p = make_packet(pkt_size, outer_vlan, inner_vlan, vni)
         while count > 0:
             app.send_packet(switchid, p, port)
             count -= 1
