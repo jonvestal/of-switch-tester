@@ -134,9 +134,15 @@ class Scenario:
         return response
 
     def send_packet_out(self, dpid, port, outer_vlan, inner_vlan, pkt_size, count):
-        url = 'http://{}:{}/tpn/packet_out/{}/{}/{}/{}/{}/{}'.format(
-            self.environment.ryu_host, self.environment.ryu_port, dpid, port, outer_vlan, inner_vlan, pkt_size, count)
-        resp = self.session.post(url)
+        url = 'http://{}:{}/tpn/packet_out/{}'.format(
+            self.environment.ryu_host, self.environment.ryu_port, dpid)
+        resp = self.session.post(url, json={
+            'port': port,
+            'outer_vlan': outer_vlan,
+            'inner_vlan': inner_vlan,
+            'pkt_size': pkt_size,
+            'count': count
+        })
         resp.raise_for_status()
         logging.debug('Sending %i packet out to port %i of size %i', count, port, pkt_size)
 

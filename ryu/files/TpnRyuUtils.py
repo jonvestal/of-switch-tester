@@ -1,3 +1,5 @@
+import json
+
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from ryu.base import app_manager
 from ryu.controller import dpset
@@ -101,18 +103,23 @@ class PipelineTesterController(ControllerBase):
         super(PipelineTesterController, self).__init__(req, link, data, **config)
         self.pipeline_tester_app = data[pipeline_tester_instance_name]
 
-    @route('tester', '/tpn/packet_out/{switchid}/{port}/{outer_vlan}/{inner_vlan}/{pkt_size}/{count}', methods=['POST'])
+    @route('tester', '/tpn/packet_out/{switchid}', methods=['POST'])
     def send_packetout(self, req, **kwargs):
         app = self.pipeline_tester_app
+        if req.content_type == 'application/json':
+            payload = json.loads(req.body)
+        else:
+            raise ValueError("Not valid payload")
+
         switchid = int(kwargs['switchid'], 0)
-        pkt_size = int(kwargs['pkt_size'], 0)
-        outer_vlan = int(kwargs['outer_vlan'], 0)
-        inner_vlan = int(kwargs['inner_vlan'], 0)
-        port = int(kwargs['port'], 0)
+        pkt_size = payload['pkt_size']
+        outer_vlan = payload['outer_vlan']
+        inner_vlan = payload['inner_vlan']
+        port = payload['port']
 
         count = 1
-        if 'count' in kwargs:
-            count = int(kwargs['count'], 0)
+        if 'count' in payload:
+            count = payload['count']
 
         p = make_packet(pkt_size, outer_vlan, inner_vlan)
         while count > 0:
