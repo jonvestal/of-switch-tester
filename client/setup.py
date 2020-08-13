@@ -14,7 +14,8 @@ setup(
     install_requires=[
         'jinja2',
         'requests',
-        'PyYAML'
+        'PyYAML',
+        'plotly'
     ],
     extras_require={
         'test': [

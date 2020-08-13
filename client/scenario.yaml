@@ -11,6 +11,7 @@ environment:
   otsdb_port: 4242
   ryu_host: localhost
   ryu_port: 8080
+  reports: plotly
   switches:
     - dpid: 00:00:00:22:3d:5a:16:51
       snake_start_port: 5
