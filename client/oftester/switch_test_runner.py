@@ -35,6 +35,7 @@ clazz_map = {
 
 report_generator_map = {
     'plotly': generator.PlotlyReportGenerator,
+    'plotly-aggregated': generator.PlotlyAggregatedReportGenerator,
     'otsdb': generator.OtsdbReportGenerator
 }
 

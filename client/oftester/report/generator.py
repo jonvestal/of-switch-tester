@@ -98,3 +98,31 @@ class PlotlyReportGenerator(ReportGenerator):
         fig.update_layout(title_text='Packet size: ' + str(packet_size))
 
         return fig
+
+
+class PlotlyAggregatedReportGenerator(PlotlyReportGenerator):
+
+    def report(self):
+        figures = []
+        fig = self.make_figure('port.bits')
+        figures.append(fig.to_html(full_html=False, include_plotlyjs='cdn', default_height='100vh'))
+        fig = self.make_figure('port.packets')
+        figures.append(fig.to_html(full_html=False, include_plotlyjs='cdn', default_height='100vh'))
+
+        template = self.env.get_template('plotly_index.html')
+        template.stream(name=self.scenario.name,
+                        figures=figures).dump(base_dir + '/' + self.scenario.name + '.html')
+        logging.info("Report for %s scenario has been created", self.scenario.name)
+
+    def make_figure(self, metric):
+        fig = make_subplots()
+        for packet_size in self.collected_data:
+            for d in self.collected_data[packet_size]:
+                if d['metric'] == metric:
+                    timestamps = list(d['dps'].keys())
+                    start_time = int(timestamps[0])
+                    x_axis = list(map(lambda x: int(x) - start_time, timestamps))
+                    fig.add_trace(go.Scatter(x=x_axis, y=list(d['dps'].values()), name=str(packet_size)))
+
+        fig.update_layout(title_text='Metric: ' + metric)
+        return fig
