@@ -36,11 +36,12 @@ class Switch:
 
 
 class Environment:
-    def __init__(self, otsdb_host, otsdb_port, ryu_host, ryu_port, switches):
+    def __init__(self, otsdb_host, otsdb_port, ryu_host, ryu_port, reports, switches):
         self.otsdb_host = otsdb_host
         self.otsdb_port = otsdb_port
         self.ryu_host = ryu_host
         self.ryu_port = ryu_port
+        self.reports = reports
         switch_map = {}
         for sw_dict in switches:
             sw = Switch(**sw_dict)

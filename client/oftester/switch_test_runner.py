@@ -6,11 +6,11 @@ import time
 
 import yaml
 
-from oftester.report.generator import ReportGenerator
+from oftester.report import generator
 from oftester.scenario import basic as basic
 from oftester.scenario import ingress_egress as ingress
-from oftester.scenario import transit as transit
 from oftester.scenario import loop as loop
+from oftester.scenario import transit as transit
 
 clazz_map = {
     'pps': basic.PpsScenario,
@@ -33,10 +33,20 @@ clazz_map = {
     'transit-vxlan': transit.TransitVxlanScenario
 }
 
+report_generator_map = {
+    'plotly': generator.PlotlyReportGenerator,
+    'otsdb': generator.OtsdbReportGenerator
+}
+
 
 def get_scenario(config):
     cls = clazz_map[config['name']]
     return cls(**config)
+
+
+def get_report_generator(scenario):
+    report_generator = report_generator_map[scenario.environment.reports]
+    return report_generator(scenario)
 
 
 def main(config=None):
@@ -49,12 +59,13 @@ def main(config=None):
     max_runs = 1
     run_num = 0
     scenario = get_scenario(config)
-    report_generator = ReportGenerator(scenario)
+    report_generator = get_report_generator(scenario)
     try:
         while run_num < max_runs:
             for i in range(len(scenario.packet_sizes)):
+                packet_size = scenario.current_packet_size()
                 scenario.execute(run_num)
-                report_generator.generate_graph(i)
+                report_generator.collect_data(i, packet_size)
                 time.sleep(10)
             run_num += 1
     except KeyboardInterrupt:
