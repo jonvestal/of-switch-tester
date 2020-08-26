@@ -25,6 +25,8 @@ clazz_map = {
     'rx-timestamp': basic.RxTimestampScenario,
     'tx-timestamp': basic.TxTimestampScenario,
     'metadata': basic.MetadataScenario,
+    'multicast-goto-table': basic.MulticastGotoTableScenario,
+    'multicast-group': basic.MulticastGroupScenario,
     'ingress-egress-qnq-vlan': ingress.IngressEgressQnqVlanScenario,
     'ingress-egress-qnq-vxlan': ingress.IngressEgressQnqVxlanScenario,
     'ingress-egress-vlan': ingress.IngressEgressVlanScenario,
@@ -73,7 +75,7 @@ def main(config=None):
         pass
     except Exception as e:
         logging.exception(e)
-    scenario.delete_all_flows()
+    scenario.cleanup_switch()
     report_generator.report()
 
 

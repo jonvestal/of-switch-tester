@@ -368,3 +368,76 @@ def flow_set_fields(dpid, in_port, out_port, table_id=0, priority=2000, values=N
         'match': {'in_port': in_port},
         'actions': actions
     }
+
+
+def multicast_goto_table_flows(dpid, in_port, out_port, table_id=0, dst_table=1, priority=2000):
+    """
+    Flows that sends packet to another table and port
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param out_port: (int) port to send packet out
+    :param table_id: (int) table to insert flow
+    :param dst_table: (int) table that packet will be sent to
+    :param priority: (int) priority of the flow
+    :return: (dict)
+    """
+    return [
+        {
+            'dpid': dpid,
+            'cookie': COOKIE_MULTICAST_GOTO_TABLE,
+            'table_id': table_id,
+            'priority': priority,
+            'match': {
+                'in_port': in_port
+            },
+            'actions': [
+                {
+                    'type': 'GOTO_TABLE',
+                    'table_id': dst_table
+                },
+                {
+                    'type': 'OUTPUT',
+                    'port': out_port
+                }
+            ]
+        }, {
+            'dpid': dpid,
+            'cookie': COOKIE_MULTICAST_GOTO_TABLE,
+            'table_id': dst_table,
+            'priority': priority,
+            'actions': [
+                {
+                    'type': 'OUTPUT',
+                    'port': out_port
+                }
+            ]
+        }
+    ]
+
+
+def multicast_group_flow(dpid, in_port, table_id=0, priority=2000):
+    """
+    Flow that sends packet throw group
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param table_id: (int) table to insert flow
+    :param priority: (int) priority of the flow
+    :return: (dict)
+    """
+    return {
+        'dpid': dpid,
+        'cookie': COOKIE_MULTICAST_GROUP,
+        'table_id': table_id,
+        'priority': priority,
+        'match': {
+            'in_port': in_port
+        },
+        'actions': [
+            {
+                'type': 'GROUP',
+                'group_id': GROUP_ID
+            }
+        ]
+    }
