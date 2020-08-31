@@ -379,3 +379,117 @@ def flow_transit_vxlan(dpid, in_port, out_port, priority=2000, vni=4242):
             }]
         }
     ]
+
+
+def flows_connected_devices_with_vxlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, priority=2000,
+                                       udp_port=5000, vni=4242):
+    """
+    Creates a flow that will match VxLAN id and throw packet to out port.
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param out_port: (out) port to send packet out
+    :param outer_vid: (int) outer vlan id
+    :param inner_vid: (int) inner vlan id
+    :param priority: (int) priority of the flow
+    :param udp_port: (int) udp_port for the VxLAN header
+    :param vni: (int) VxLAN ID
+    :return: (dict)
+    """
+
+    flows = flow_ingress_vxlan(dpid, in_port, out_port, outer_vid, inner_vid, priority=priority, udp_port=udp_port,
+                               vni=vni)
+    flows[0]['actions'].append({'type': 'GOTO_TABLE', 'table_id': POST_INGRESS_TABLE_ID})
+
+    flows.insert(0, {
+        'dpid': dpid,
+        'cookie': COOKIE_CONNECTED_DEVICES,
+        'table_id': POST_INGRESS_TABLE_ID,
+        'priority': priority,
+        'match': {
+            'metadata': 1,
+            'ip_proto': 17,
+            'udp_src': udp_port,
+            'udp_dst': 4789
+        },
+        'actions': [
+            {
+                'type': 'NOVI_POP_VXLAN'
+            },
+            {
+                'type': 'OUTPUT',
+                'port': out_port
+            }
+        ]
+    })
+    return flows
+
+
+def flows_connected_devices_with_vlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, priority=2000):
+    """
+    Creates a flow that will match VxLAN id and throw packet to out port.
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param out_port: (out) port to send packet out
+    :param outer_vid: (int) outer vlan id
+    :param inner_vid: (int) inner vlan id
+    :param priority: (int) priority of the flow
+    :return: (dict)
+    """
+
+    flows = flow_ingress_vlan(dpid, in_port, out_port, outer_vid, inner_vid, priority=priority)
+    flows[0]['actions'].append({'type': 'GOTO_TABLE', 'table_id': POST_INGRESS_TABLE_ID})
+
+    flows.insert(0, {
+        'dpid': dpid,
+        'cookie': COOKIE_CONNECTED_DEVICES,
+        'table_id': POST_INGRESS_TABLE_ID,
+        'priority': priority,
+        'match': {
+            'metadata': 1
+        },
+        'actions': [
+            {
+                'type': 'OUTPUT',
+                'port': out_port
+            }
+        ]
+    })
+    return flows
+
+
+def flow_rtl(dpid, in_port, eth_dst='aa:bb:cc:dd:ee:ff', eth_type=2048, ip_proto=17, udp_dst_port=5000,
+             priority=2000):
+    """
+    Creates a flow that will match VxLAN id and throw packet to out port.
+
+    :param dpid: Switch DPID
+    :param in_port: (int) port to match for incoming packets
+    :param eth_dst: (string) mac to use in eth_dst packet header
+    :param eth_type: (int) ether type
+    :param ip_proto: (int) ip protocol
+    :param udp_dst_port: (int) udp destination port
+    :param priority: (int) priority of the flow
+    :return: (dict)
+    """
+
+    return {
+        'dpid': dpid,
+        'cookie': COOKIE_RTL,
+        'table_id': INPUT_TABLE_ID,
+        'priority': priority,
+        'match': {
+            'in_port': in_port,
+            'eth_dst': eth_dst,
+            'eth_type': eth_type,
+            'ip_proto': ip_proto,
+            'udp_dst': udp_dst_port
+        },
+        'actions': [
+            {
+                'type': 'GROUP',
+                'group_id': GROUP_ID
+            }
+        ]
+    }

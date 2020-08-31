@@ -151,11 +151,20 @@ class Scenario:
         response.raise_for_status()
         return response
 
-    def send_packet_out(self, dpid, port, outer_vlan, inner_vlan, vni, pkt_size, count):
+    def send_packet_out(self, dpid, port, eth_src, eth_dst, udp_src_port, udp_dst_port, eth_type,
+                        ip_src, ip_dst, ip_proto, outer_vlan, inner_vlan, vni, pkt_size, count):
         url = 'http://{}:{}/tpn/packet_out/{}'.format(
             self.environment.ryu_host, self.environment.ryu_port, dpid)
         resp = self.session.post(url, json={
             'port': port,
+            'ip_src': ip_src,
+            'ip_dst': ip_dst,
+            'ip_proto': ip_proto,
+            'eth_src': eth_src,
+            'eth_dst': eth_dst,
+            'eth_type': eth_type,
+            'udp_src_port': udp_src_port,
+            'udp_dst_port': udp_dst_port,
             'outer_vlan': outer_vlan,
             'inner_vlan': inner_vlan,
             'vni': vni,
@@ -200,12 +209,15 @@ class Scenario:
 
         return growth_rate < 0.05
 
-    def bring_switch_full_load(self, dpid, port, size, outer_vlan=0, inner_vlan=0, vni=0, sleep=30):
+    def bring_switch_full_load(self, dpid, port, size, outer_vlan=0, inner_vlan=0, vni=0,
+                               eth_src=None, eth_dst=None, udp_src_port=None, udp_dst_port=None, eth_type=None,
+                               ip_src=None, ip_dst=None, ip_proto=None, sleep=30):
         logging.info('Bringing switch to full load')
         done = False
         pkts_sent = 0
         while not done:
-            self.send_packet_out(dpid, port, outer_vlan, inner_vlan, vni, size, 1)
+            self.send_packet_out(dpid, port, eth_src, eth_dst, udp_src_port, udp_dst_port, eth_type,
+                                 ip_src, ip_dst, ip_proto, outer_vlan, inner_vlan, vni, size, 1)
             pkts_sent += 1
             logging.debug('Injected %i packets per port in total', pkts_sent)
             time.sleep(1)
@@ -214,13 +226,17 @@ class Scenario:
                      pkts_sent, size, port, sleep)
         time.sleep(sleep)
 
-    def prepare_snake_flows(self, dpid, size, outer_vlan=0, inner_vlan=0, vni=0):
+    def prepare_snake_flows(self, dpid, size, outer_vlan=0, inner_vlan=0, vni=0,
+                            eth_src=None, eth_dst=None, udp_src_port=None, udp_dst_port=None, eth_type=None,
+                            ip_src=None, ip_dst=None, ip_proto=None):
         switch = self.environment.sw_by_dpid(dpid)
         flowmods = flows.flow_snake(dpid, switch.snake_start_port, switch.snake_end_port, 0)
         for flow in flowmods:
             self.add_flow(flow)
         self.time_metrics[-1].basic_flows_installed = datetime.utcnow()
-        self.bring_switch_full_load(dpid, -1, size, outer_vlan, inner_vlan, vni)
+        self.bring_switch_full_load(dpid, -1, size, outer_vlan, inner_vlan, vni,
+                                    eth_src, eth_dst, udp_src_port, udp_dst_port, eth_type,
+                                    ip_src, ip_dst, ip_proto)
         self.time_metrics[-1].traffic_injected = datetime.utcnow()
 
 

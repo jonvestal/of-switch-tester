@@ -21,20 +21,32 @@ DL_SRC = '66:55:44:33:22:11'
 IP_SRC = '1.1.1.1'
 IP_DST = '2.2.2.2'
 IP_PROTO = inet.IPPROTO_UDP
+UDP_SRC_PORT = 5000
+UDP_DST_PORT = 10000
 
 pipeline_tester_instance_name = "PipelineTesterInstance"
 
 
-def make_packet(pkt_size, outer_vlan=0, inner_vlan=0, vni=0):
-    dl_type = ether.ETH_TYPE_IP
+def make_packet(pkt_size, outer_vlan=0, inner_vlan=0, vni=0,
+                eth_src=None, eth_dst=None, udp_src_port=None, udp_dst_port=None, eth_type=None,
+                ip_src=None, ip_dst=None, ip_proto=None):
+    
+    ip_src = IP_SRC if ip_src is None else ip_src
+    ip_dst = IP_DST if ip_dst is None else ip_dst
+    ip_proto = IP_PROTO if ip_proto is None else ip_proto
+    eth_src = DL_SRC if eth_src is None else eth_src
+    eth_dst = DL_SRC if eth_dst is None else eth_dst
+    eth_type = ether.ETH_TYPE_IP if eth_type is None else eth_type
+    udp_src_port = UDP_SRC_PORT if udp_src_port is None else udp_src_port
+    udp_dst_port = UDP_DST_PORT if udp_dst_port is None else udp_dst_port
+
     if outer_vlan or inner_vlan:
-        dl_type = ether.ETH_TYPE_8021Q
-    e = ethernet.ethernet(DL_DST, DL_SRC, dl_type)
-    i = ipv4.ipv4(total_length=0, src=IP_SRC, dst=IP_DST, proto=IP_PROTO, ttl=1)
-    dst_udp_port = 10000
+        eth_type = ether.ETH_TYPE_8021Q
+    e = ethernet.ethernet(eth_dst, eth_src, eth_type)
+    i = ipv4.ipv4(total_length=0, src=ip_src, dst=ip_dst, proto=ip_proto, ttl=1)
     if vni:
-        dst_udp_port = 4789
-    u = udp.udp(src_port=5000, dst_port=dst_udp_port)
+        udp_dst_port = 4789
+    u = udp.udp(src_port=udp_src_port, dst_port=udp_dst_port)
 
     outer_len = 0
     outer_tag = None
@@ -122,17 +134,15 @@ class PipelineTesterController(ControllerBase):
             raise ValueError("Not valid payload")
 
         switchid = int(kwargs['switchid'], 0)
-        pkt_size = payload['pkt_size']
-        outer_vlan = payload['outer_vlan']
-        inner_vlan = payload['inner_vlan']
-        vni = payload['vni']
         port = payload['port']
+        del payload['port']
 
         count = 1
         if 'count' in payload:
             count = payload['count']
+            del payload['count']
 
-        p = make_packet(pkt_size, outer_vlan, inner_vlan, vni)
+        p = make_packet(**payload)
         while count > 0:
             app.send_packet(switchid, p, port)
             count -= 1
