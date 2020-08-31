@@ -10,6 +10,7 @@ from oftester.report import generator
 from oftester.scenario import basic as basic
 from oftester.scenario import ingress_egress as ingress
 from oftester.scenario import loop as loop
+from oftester.scenario import multicast as multicast
 from oftester.scenario import transit as transit
 
 clazz_map = {
@@ -32,7 +33,10 @@ clazz_map = {
     'ingress-egress-vlan': ingress.IngressEgressVlanScenario,
     'ingress-egress-vxlan': ingress.IngressEgressVxlanScenario,
     'transit-vlan': transit.TransitVlanScenario,
-    'transit-vxlan': transit.TransitVxlanScenario
+    'transit-vxlan': transit.TransitVxlanScenario,
+    'connected-devices-vxlan': multicast.ConnectedDevicesVxlanScenario,
+    'connected-devices-vlan': multicast.ConnectedDevicesVlanScenario,
+    'rtl': multicast.RtlScenario
 }
 
 report_generator_map = {
