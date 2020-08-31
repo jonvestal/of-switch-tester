@@ -4,6 +4,7 @@ from datetime import datetime
 
 import requests
 
+from oftester.constants import GROUP_ID
 from oftester.openflow import basic_flows as flows
 
 HTTP_HEADERS = {'Content-Type': 'application/json'}
@@ -51,6 +52,7 @@ class Environment:
     def sw_by_dpid(self, dpid):
         return self.switches[dpid]
 
+
 class ScenarioTimestamps:
     pass
 
@@ -75,7 +77,7 @@ class Scenario:
         logging.info('Running %s test case, run number %i', self.name, run_num + 1)
         size = self.current_packet_size()
         logging.info('Packet size of %i', size)
-        self.delete_all_flows()
+        self.cleanup_switch()
         self.time_metrics[-1].start = datetime.utcnow()
         self.run()
         time.sleep(10)  # need to wait until traffic has stopped
@@ -83,10 +85,9 @@ class Scenario:
                      self.name, size, self.collection_interval)
         time.sleep(self.collection_interval)
         self.time_metrics[-1].stop = datetime.utcnow()
-        self.delete_all_flows()
+        self.cleanup_switch()
         if self.current_packet_idx < len(self.packet_sizes) -1:
             self.next_packet_size()
-
 
     def next_packet_size(self):
         self.current_packet_idx += 1
@@ -96,13 +97,14 @@ class Scenario:
     def current_packet_size(self):
         return self.packet_sizes[self.current_packet_idx]
 
-    def delete_all_flows(self, dpid=None):
+    def cleanup_switch(self, dpid=None):
         if dpid:
             self._delete_all_flows(dpid)
+            self._delete_group(dpid, GROUP_ID)
         else:
             for sw in self.environment.switches.keys():
                 self._delete_all_flows(sw)
-
+                self._delete_group(sw, GROUP_ID)
 
     def _delete_all_flows(self, dpid):
         url = 'http://{}:{}/stats/flowentry/clear/{}'.format(self.environment.ryu_host, self.environment.ryu_port, dpid)
@@ -110,10 +112,25 @@ class Scenario:
         resp.raise_for_status()
         logging.warning('Deleted all flows for %s', dpid)
 
+    def _delete_group(self, dpid, group_id):
+        group = {'dpid': dpid, 'group_id': group_id}
+        url = 'http://{}:{}/stats/groupentry/delete'.format(self.environment.ryu_host, self.environment.ryu_port)
+        response = self.session.post(url, json=group, headers=HTTP_HEADERS)
+        response.raise_for_status()
+        logging.warning('Deleted group (id: %i) for %s', group_id, dpid)
+        return response
+
     def add_flow(self, flowmod):
         url = 'http://{}:{}/stats/flowentry/add'.format(self.environment.ryu_host, self.environment.ryu_port)
         logging.debug('sending flowmod %s', flowmod)
         response = self.session.post(url, json=flowmod, headers=HTTP_HEADERS)
+        response.raise_for_status()
+        return response
+
+    def add_group(self, group):
+        url = 'http://{}:{}/stats/groupentry/add'.format(self.environment.ryu_host, self.environment.ryu_port)
+        logging.debug('sending add group command %s', group)
+        response = self.session.post(url, json=group, headers=HTTP_HEADERS)
         response.raise_for_status()
         return response
 

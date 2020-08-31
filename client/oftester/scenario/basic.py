@@ -1,7 +1,8 @@
 import logging
 
-from oftester.constants import OFPP_IN_PORT
+from oftester.constants import OFPP_IN_PORT, GROUP_ID
 from oftester.openflow import basic_flows as flows
+from oftester.openflow import groups
 from oftester.scenario.model import Scenario
 
 
@@ -99,3 +100,23 @@ class MetadataScenario(Scenario):
             self.add_flow(flows.pass_through_flow(sw.dpid, sw.snake_end_port, OFPP_IN_PORT))
             for flow in flows.metadata_multi_table_flows(sw.dpid, sw.snake_start_port, OFPP_IN_PORT):
                 self.add_flow(flow)
+
+
+class MulticastGotoTableScenario(Scenario):
+    def run(self):
+        for sw in self.environment.switches.values():
+            self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            logging.info('Switch under full load adding multicast_goto_table rules')
+            self.add_flow(flows.pass_through_flow(sw.dpid, sw.snake_end_port, OFPP_IN_PORT))
+            for flow in flows.multicast_goto_table_flows(sw.dpid, sw.snake_start_port, OFPP_IN_PORT):
+                self.add_flow(flow)
+
+
+class MulticastGroupScenario(Scenario):
+    def run(self):
+        for sw in self.environment.switches.values():
+            self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            logging.info('Switch under full load adding multicast_group rules')
+            group = groups.group_output_in_two_ports(sw.dpid, sw.snake_end_port - 2, sw.snake_end_port)
+            self.add_group(group)
+            self.add_flow(flows.multicast_group_flow(sw.dpid, sw.snake_start_port))
