@@ -23,7 +23,7 @@ class ReportGenerator(ABC):
         pass
 
     @abstractmethod
-    def collect_data(self, idx, packet_size):
+    def collect_data(self):
         pass
 
 
@@ -33,9 +33,9 @@ class OtsdbReportGenerator(ReportGenerator):
         template.stream(name=self.scenario.name,
                         packet_sizes=self.scenario.packet_sizes).dump(base_dir + '/' + self.scenario.name + '.html')
 
-    def collect_data(self, idx, packet_size):
-        time_metrics = self.scenario.time_metrics[idx]
-        self.get_graph(idx, time_metrics.start, time_metrics.stop)
+    def collect_data(self):
+        time_metrics = self.scenario.time_metrics[self.scenario.get_current_packet_size_idx()]
+        self.get_graph(self.scenario.get_current_packet_size_idx(), time_metrics.start, time_metrics.stop)
 
     def get_graph(self, idx, start, stop):
         fmt = "%Y/%m/%d-%H:%M:%S"
@@ -67,9 +67,9 @@ class PlotlyReportGenerator(ReportGenerator):
                         figures=figures).dump(base_dir + '/' + self.scenario.name + '.html')
         logging.info("Report for %s scenario has been created", self.scenario.name)
 
-    def collect_data(self, idx, packet_size):
-        time_metrics = self.scenario.time_metrics[idx]
-        self.get_points(time_metrics.start, time_metrics.stop, packet_size)
+    def collect_data(self):
+        time_metrics = self.scenario.time_metrics[self.scenario.get_current_packet_size_idx()]
+        self.get_points(time_metrics.start, time_metrics.stop, self.scenario.current_packet_size())
 
     def get_points(self, start, stop, packet_size):
         fmt = "%Y/%m/%d-%H:%M:%S"

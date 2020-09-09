@@ -46,9 +46,14 @@ report_generator_map = {
 }
 
 
-def get_scenario(config):
-    cls = clazz_map[config['name']]
-    return cls(**config)
+def get_scenarios(config):
+    scenarios = []
+    names = config['names']
+    del config['names']
+    for name in names:
+        cls = clazz_map[name]
+        scenarios.append(cls(name=name, **config))
+    return scenarios
 
 
 def get_report_generator(scenario):
@@ -63,24 +68,21 @@ def main(config=None):
             level=logging.INFO
         )
         config = get_args()
-    max_runs = 1
-    run_num = 0
-    scenario = get_scenario(config)
-    report_generator = get_report_generator(scenario)
-    try:
-        while run_num < max_runs:
-            for i in range(len(scenario.packet_sizes)):
-                packet_size = scenario.current_packet_size()
-                scenario.execute(run_num)
-                report_generator.collect_data(i, packet_size)
+    scenarios = get_scenarios(config)
+    for scenario in scenarios:
+        report_generator = get_report_generator(scenario)
+        try:
+            while scenario.has_next_packet_size():
+                scenario.next_packet_size()
+                scenario.execute()
+                report_generator.collect_data()
                 time.sleep(10)
-            run_num += 1
-    except KeyboardInterrupt:
-        pass
-    except Exception as e:
-        logging.exception(e)
-    scenario.cleanup_switch()
-    report_generator.report()
+        except KeyboardInterrupt:
+            pass
+        except Exception as e:
+            logging.exception(e)
+        scenario.cleanup_switch()
+        report_generator.report()
 
 
 def _parsecmdline():
