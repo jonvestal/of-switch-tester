@@ -1,4 +1,19 @@
-name: vlan
+names:
+  - goto-table
+  - vlan
+  - vxlan
+  - swap
+  - rx-timestamp
+  - tx-timestamp
+  - metadata
+  - multicast-goto-table
+  - multicast-group
+  - ingress-egress-qnq-vlan
+  - ingress-egress-qnq-vxlan
+  - ingress-egress-vlan
+  - ingress-egress-vxlan
+  - transit-vlan
+  - transit-vxlan
 packet_sizes:
   - 100
   - 500
@@ -11,7 +26,7 @@ environment:
   otsdb_port: 4242
   ryu_host: localhost
   ryu_port: 8080
-  reports: plotly
+  reports: plotly-aggregated
   switches:
     - dpid: 00:00:00:22:3d:5a:16:51
       snake_start_port: 5

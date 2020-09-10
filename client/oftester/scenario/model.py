@@ -64,17 +64,33 @@ class Scenario:
         if not packet_sizes:
             packet_sizes = [9000]
         self.packet_sizes = packet_sizes
-        self.current_packet_idx = 0
+        self.packet_size = self.packet_sizes[0]
+        self.current_packet_idx = -1
         self.collection_interval = collection_interval
         self.environment = Environment(**environment)
         self.session = requests.Session()
-        self.time_metrics = [ScenarioTimestamps()]
+        self.time_metrics = []
 
     def run(self):
         raise NotImplementedError()
 
-    def execute(self, run_num):
-        logging.info('Running %s test case, run number %i', self.name, run_num + 1)
+    def has_next_packet_size(self):
+        return self.current_packet_idx < len(self.packet_sizes) - 1
+
+    def next_packet_size(self):
+        self.current_packet_idx += 1
+        self.time_metrics.append(ScenarioTimestamps())
+        self.packet_size = self.current_packet_size()
+
+    def reset_packet_size(self):
+        self.current_packet_idx = -1
+        self.packet_size = self.packet_sizes[0]
+
+    def get_current_packet_size_idx(self):
+        return self.current_packet_idx
+
+    def execute(self):
+        logging.info('Running %s test case', self.name)
         size = self.current_packet_size()
         logging.info('Packet size of %i', size)
         self.cleanup_switch()
@@ -86,13 +102,6 @@ class Scenario:
         time.sleep(self.collection_interval)
         self.time_metrics[-1].stop = datetime.utcnow()
         self.cleanup_switch()
-        if self.current_packet_idx < len(self.packet_sizes) -1:
-            self.next_packet_size()
-
-    def next_packet_size(self):
-        self.current_packet_idx += 1
-        self.time_metrics.append(ScenarioTimestamps())
-        return self.current_packet_size()
 
     def current_packet_size(self):
         return self.packet_sizes[self.current_packet_idx]
