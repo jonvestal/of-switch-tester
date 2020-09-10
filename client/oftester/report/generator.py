@@ -64,7 +64,7 @@ class PlotlyReportGenerator(ReportGenerator):
 
         template = self.env.get_template('plotly_index.html')
         template.stream(name=self.scenario.name,
-                        figures=figures).dump(base_dir + '/' + self.scenario.name + '.html')
+                        figures=figures).dump(base_dir + '/' + self.scenario.name + '-plotly.html')
         logging.info("Report for %s scenario has been created", self.scenario.name)
 
     def collect_data(self):
@@ -103,18 +103,20 @@ class PlotlyReportGenerator(ReportGenerator):
 class PlotlyAggregatedReportGenerator(PlotlyReportGenerator):
 
     def report(self):
+        PlotlyReportGenerator.report(self)
+
         figures = []
-        fig = self.make_figure('port.bits')
+        fig = self.create_figure('port.bits')
         figures.append(fig.to_html(full_html=False, include_plotlyjs='cdn', default_height='100vh'))
-        fig = self.make_figure('port.packets')
+        fig = self.create_figure('port.packets')
         figures.append(fig.to_html(full_html=False, include_plotlyjs='cdn', default_height='100vh'))
 
         template = self.env.get_template('plotly_index.html')
         template.stream(name=self.scenario.name,
-                        figures=figures).dump(base_dir + '/' + self.scenario.name + '.html')
+                        figures=figures).dump(base_dir + '/' + self.scenario.name + '-plotly-aggr.html')
         logging.info("Report for %s scenario has been created", self.scenario.name)
 
-    def make_figure(self, metric):
+    def create_figure(self, metric):
         fig = make_subplots()
         for packet_size in self.collected_data:
             for d in self.collected_data[packet_size]:
