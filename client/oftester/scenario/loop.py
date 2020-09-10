@@ -27,6 +27,7 @@ class GoToTableScenario(Scenario):
 
             table = 5
             while table > 0:
+                self.add_flow(flows.flow_goto_table(sw.dpid, 0, table, 200))
                 logging.info('Collecting data for tables = %i', 5 - table + 1)
                 time.sleep(self.collection_interval)
-                self.add_flow(flows.flow_goto_table(sw.dpid, 0, table, 200))
+                table -= 1
