@@ -56,6 +56,14 @@ def metadata_multi_table_flows(dpid, in_port, out_port, priority=2000):
     return [
         {
             'dpid': dpid,
+            'cookie': COOKIE_METADATA_OUT,
+            'table_id': 1,
+            'priority': priority,
+            'actions': [
+                {'type': 'OUTPUT', 'port': out_port}
+            ]
+        }, {
+            'dpid': dpid,
             'cookie': COOKIE_METADATA,
             'table_id': 0,
             'priority': priority,
@@ -71,16 +79,7 @@ def metadata_multi_table_flows(dpid, in_port, out_port, priority=2000):
                     'table_id': 1
                 }
             ]
-        },
-        {
-            'dpid': dpid,
-            'cookie': COOKIE_METADATA_OUT,
-            'table_id': 1,
-            'priority': priority,
-            'actions': [
-                {'type': 'OUTPUT', 'port': out_port}
-            ]
-        },
+        }
     ]
 
 
