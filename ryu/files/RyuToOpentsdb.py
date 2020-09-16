@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
 
+import os
+
+import potsdb
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, DEAD_DISPATCHER
 from ryu.controller.handler import set_ev_cls
-from ryu.ofproto import ofproto_v1_3
 from ryu.lib import hub
-import potsdb
+from ryu.ofproto import ofproto_v1_3
 
 
 class RyuToOpentsdb(app_manager.RyuApp):
@@ -17,7 +19,7 @@ class RyuToOpentsdb(app_manager.RyuApp):
         super(RyuToOpentsdb, self).__init__(*args, **kwargs)
         self.datapaths = {}
         self.collector_thread = hub.spawn(self.run_stats_collector)
-        self.metrics = potsdb.Client('opentsdb')
+        self.metrics = potsdb.Client(os.getenv('OTSDB_HOST', 'opentsdb'))
 
     @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
     def state_change_event_handler(self, ev):
