@@ -40,10 +40,10 @@ class OtsdbReportGenerator(ReportGenerator):
     def get_graph(self, idx, start, stop):
         fmt = "%Y/%m/%d-%H:%M:%S"
 
-        url = "http://{0}:{1}/q?start={2}&end={3}&m=sum:rate:port.packets" \
-              "&o=&m=sum:rate:port.bits&o=axis%20x1y2&ylabel=y&yrange=[0:]&wxh=1833x760&style=linespoint&png" \
+        url = "http://{0}:{1}/q?start={2}&end={3}&m=sum:rate:{4}.port.packets" \
+              "&o=&m=sum:rate:{4}.port.bits&o=axis%20x1y2&ylabel=y&yrange=[0:]&wxh=1833x760&style=linespoint&png" \
                   .format(self.scenario.environment.otsdb_host, self.scenario.environment.otsdb_port,
-                          start.strftime(fmt), stop.strftime(fmt))
+                          start.strftime(fmt), stop.strftime(fmt), self.scenario.environment.otsdb_prefix)
         resp = requests.get(url, stream=True)
         if resp.status_code == 200:
             with open(base_dir + '/%s_%d.png' % (self.scenario.name, idx), 'wb') as f:
@@ -74,10 +74,10 @@ class PlotlyReportGenerator(ReportGenerator):
     def get_points(self, start, stop, packet_size):
         fmt = "%Y/%m/%d-%H:%M:%S"
 
-        url = "http://{0}:{1}/api/query?start={2}&end={3}&m=sum:rate:port.packets" \
-              "&o=&m=sum:rate:port.bits&o=axis%20x1y2&ylabel=y&yrange=[0:]" \
+        url = "http://{0}:{1}/api/query?start={2}&end={3}&m=sum:rate:{4}.port.packets" \
+              "&o=&m=sum:rate:{4}.port.bits&o=axis%20x1y2&ylabel=y&yrange=[0:]" \
                   .format(self.scenario.environment.otsdb_host, self.scenario.environment.otsdb_port,
-                          start.strftime(fmt), stop.strftime(fmt))
+                          start.strftime(fmt), stop.strftime(fmt), self.scenario.environment.otsdb_prefix)
         resp = requests.get(url)
         if resp.status_code == 200:
             self.collected_data[packet_size] = resp.json()
@@ -106,9 +106,9 @@ class PlotlyAggregatedReportGenerator(PlotlyReportGenerator):
         PlotlyReportGenerator.report(self)
 
         figures = []
-        fig = self.create_figure('port.bits')
+        fig = self.create_figure(self.scenario.environment.otsdb_prefix + '.port.bits')
         figures.append(fig.to_html(full_html=False, include_plotlyjs='cdn', default_height='100vh'))
-        fig = self.create_figure('port.packets')
+        fig = self.create_figure(self.scenario.environment.otsdb_prefix + '.port.packets')
         figures.append(fig.to_html(full_html=False, include_plotlyjs='cdn', default_height='100vh'))
 
         template = self.env.get_template('plotly_index.html')
