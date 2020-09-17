@@ -34,6 +34,11 @@ to contribute more)
     of_port_stats_reply and of_flow_stats_reply into OpenTSDB
     **TpnRyuUtils** - provides a REST endpoint for sending packet outs
     
+##### Ryu-only mode and using remote OpenTSDB server
+ Start only ryu and pass OTSDB_HOST property  
+`docker run -d -p 8080:8080 -p 6653:6653 -e OTSDB_HOST=<your_otsdb_host> ryu`
+
+
 Once the containers are running point your OpenFlow switch at the Ryu 
 container on port 6653 (can be changed in docker-compose).  Then run your
 switch_test_runner.py and watch the pretty graphs in OpenTSDB.
