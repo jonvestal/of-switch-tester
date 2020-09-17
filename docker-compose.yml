@@ -22,6 +22,9 @@ services:
     ports:
       - 6653:6653
       - 8080:8080
+    environment:
+      OTSDB_HOST: "opentsdb"
+      OTSDB_METRIC_PREFIX: "oftester"
     depends_on:
       opentsdb:
         condition: service_healthy

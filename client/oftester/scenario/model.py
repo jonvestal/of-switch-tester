@@ -37,9 +37,10 @@ class Switch:
 
 
 class Environment:
-    def __init__(self, otsdb_host, otsdb_port, ryu_host, ryu_port, reports, switches):
+    def __init__(self, otsdb_host, otsdb_port, ryu_host, ryu_port, reports, switches, otsdb_prefix='oftester'):
         self.otsdb_host = otsdb_host
         self.otsdb_port = otsdb_port
+        self.otsdb_prefix = otsdb_prefix
         self.ryu_host = ryu_host
         self.ryu_port = ryu_port
         self.reports = reports
@@ -189,7 +190,7 @@ class Scenario:
                                               self.environment.otsdb_port)
         payload = {'start': '30s-ago',
                    'queries': [{'aggregator': 'sum',
-                                'metric': 'port.bits',
+                                'metric': self.environment.otsdb_prefix + '.port.bits',
                                 'rate': 'true',
                                 'downsample': '10s-avg',
                                 'tags': {}

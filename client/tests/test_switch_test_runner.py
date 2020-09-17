@@ -18,6 +18,7 @@ class TestSwitchTestRunner(unittest.TestCase):
             'environment': {
                 'otsdb_host': 'localhost',
                 'otsdb_port': 4242,
+                'otsdb_prefix': 'oftester',
                 'ryu_host': 'localhost',
                 'ryu_port': 8080,
                 'reports': 'plotly',

@@ -20,6 +20,7 @@ class RyuToOpentsdb(app_manager.RyuApp):
         self.datapaths = {}
         self.collector_thread = hub.spawn(self.run_stats_collector)
         self.metrics = potsdb.Client(os.getenv('OTSDB_HOST', 'opentsdb'))
+        self.metric_prefix = os.getenv('OTSDB_METRIC_PREFIX', 'oftester')
 
     @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
     def state_change_event_handler(self, ev):
@@ -42,11 +43,11 @@ class RyuToOpentsdb(app_manager.RyuApp):
         body = ev.msg.body
 
         for stat in sorted(body, key=lambda x: x.cookie):
-            self.metrics.send('flow.packets',
+            self.metrics.send(self.metric_prefix + '.flow.packets',
                               stat.packet_count,
                               dpid=ev.msg.datapath.id,
                               table_id=stat.table_id)
-            self.metrics.send('flow.bits',
+            self.metrics.send(self.metric_prefix + '.flow.bits',
                               stat.byte_count * 8,
                               dpid=ev.msg.datapath.id,
                               table_id=stat.table_id)
@@ -56,32 +57,32 @@ class RyuToOpentsdb(app_manager.RyuApp):
         body = ev.msg.body
 
         for stat in sorted(body, key=lambda x: x.port_no):
-            self.metrics.send('port.packets',
+            self.metrics.send(self.metric_prefix + '.port.packets',
                               stat.rx_packets,
                               dpid=ev.msg.datapath.id,
                               port=stat.port_no,
                               direction='rx')
-            self.metrics.send('port.packets',
+            self.metrics.send(self.metric_prefix + '.port.packets',
                               stat.tx_packets,
                               dpid=ev.msg.datapath.id,
                               port=stat.port_no,
                               direction='tx')
-            self.metrics.send('port.bits',
+            self.metrics.send(self.metric_prefix + '.port.bits',
                               stat.rx_bytes * 8,
                               dpid=ev.msg.datapath.id,
                               port=stat.port_no,
                               direction='rx')
-            self.metrics.send('port.bits',
+            self.metrics.send(self.metric_prefix + '.port.bits',
                               stat.tx_bytes * 8,
                               dpid=ev.msg.datapath.id,
                               port=stat.port_no,
                               direction='tx')
-            self.metrics.send('port.errors',
+            self.metrics.send(self.metric_prefix + '.port.errors',
                               stat.rx_errors,
                               dpid=ev.msg.datapath.id,
                               port=stat.port_no,
                               direction='rx')
-            self.metrics.send('port.errors',
+            self.metrics.send(self.metric_prefix + '.port.errors',
                               stat.tx_errors,
                               dpid=ev.msg.datapath.id,
                               port=stat.port_no,
