@@ -1,4 +1,12 @@
-from oftester.constants import *
+from oftester.constants import COOKIE_CONNECTED_DEVICES
+from oftester.constants import COOKIE_EGRESS_VLAN
+from oftester.constants import COOKIE_EGRESS_VXLAN
+from oftester.constants import COOKIE_INGRESS_VLAN
+from oftester.constants import COOKIE_INGRESS_VXLAN
+from oftester.constants import COOKIE_RTL
+from oftester.constants import COOKIE_TRANSIT_VLAN
+from oftester.constants import COOKIE_TRANSIT_VXLAN
+from oftester.constants import GROUP_ID
 
 INPUT_TABLE_ID = 0
 PRE_INGRESS_TABLE_ID = 1
@@ -8,10 +16,11 @@ EGRESS_TABLE_ID = 4
 TRANSIT_TABLE_ID = 5
 
 
-def flow_ingress_vlan(dpid, in_port, out_port, outer_vid, inner_vid=None, transit_vid=48,
-                      priority=2000):
+def flow_ingress_vlan(dpid, in_port, out_port, outer_vid, inner_vid=None,
+                      transit_vid=48, priority=2000):
     """
-    Creates flows that will pop 8100 VLAN and replace 8100 VLAN or flow that will replace 8100 VLAN.
+    Creates flows that will pop 8100 VLAN and replace 8100 VLAN or flow that
+    will replace 8100 VLAN.
 
     :param dpid: Switch DPID
     :param in_port: (int) port to match for incoming packets
@@ -32,7 +41,8 @@ def flow_ingress_vlan(dpid, in_port, out_port, outer_vid, inner_vid=None, transi
             'match': {
                 'in_port': in_port
             },
-            'actions': [{'type': 'GOTO_TABLE', 'table_id': PRE_INGRESS_TABLE_ID}]
+            'actions': [{'type': 'GOTO_TABLE',
+                         'table_id': PRE_INGRESS_TABLE_ID}]
         }
     ]
 
@@ -65,7 +75,8 @@ def flow_ingress_vlan(dpid, in_port, out_port, outer_vid, inner_vid=None, transi
         'in_port': in_port,
     }
 
-    actions = [{'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': transit_vid},
+    actions = [{'type': 'SET_FIELD', 'field': 'vlan_vid',
+                'value': transit_vid},
                {'type': 'OUTPUT', 'port': out_port}]
     if inner_vid:
         match['vlan_vid'] = inner_vid
@@ -84,10 +95,11 @@ def flow_ingress_vlan(dpid, in_port, out_port, outer_vid, inner_vid=None, transi
     return flows
 
 
-def flow_egress_vlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, transit_vid=48,
-                     priority=2000):
+def flow_egress_vlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None,
+                     transit_vid=48, priority=2000):
     """
-    Creates a flow that will replace 8100 VLAN and push new 8100 VLAN if outer_vid is not None.
+    Creates a flow that will replace 8100 VLAN and push new 8100 VLAN if
+    outer_vid is not None.
 
     :param dpid: Switch DPID
     :param in_port: (int) port to match for incoming packets
@@ -114,10 +126,12 @@ def flow_egress_vlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, tran
     actions = []
 
     if inner_vid:
-        actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': inner_vid})
+        actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid',
+                        'value': inner_vid})
         actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
 
-    actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': outer_vid})
+    actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid',
+                    'value': outer_vid})
     actions.append({'type': 'OUTPUT', 'port': out_port})
 
     flows.insert(0, {
@@ -135,8 +149,10 @@ def flow_egress_vlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, tran
 
 
 def flow_ingress_vxlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None,
-                       priority=2000, src_ip='192.168.0.1', dst_ip='192.168.0.2',
-                       src_mac='11:22:33:44:55:66', dst_mac='aa:bb:cc:dd:ee:ff',
+                       priority=2000, src_ip='192.168.0.1',
+                       dst_ip='192.168.0.2',
+                       src_mac='11:22:33:44:55:66',
+                       dst_mac='aa:bb:cc:dd:ee:ff',
                        udp_port=5000, vni=4242):
     """
     Creates flows that will pop two 8100 VLAN tags and push VxLAN.
@@ -188,7 +204,8 @@ def flow_ingress_vxlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None,
             'match': {
                 'in_port': in_port
             },
-            'actions': [{'type': 'GOTO_TABLE', 'table_id': PRE_INGRESS_TABLE_ID}]
+            'actions': [{'type': 'GOTO_TABLE',
+                         'table_id': PRE_INGRESS_TABLE_ID}]
         }
     ]
 
@@ -229,8 +246,8 @@ def flow_ingress_vxlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None,
     return flows
 
 
-def flow_egress_vxlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, vni=4242,
-                      priority=2000):
+def flow_egress_vxlan(dpid, in_port, out_port, outer_vid=46,
+                      inner_vid=None, vni=4242, priority=2000):
     """
     Creates a flow that will pop VxLAN and push two 8100 VLAN tags.
 
@@ -261,10 +278,12 @@ def flow_egress_vxlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, vni
 
     if inner_vid:
         actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
-        actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': inner_vid})
+        actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid',
+                        'value': inner_vid})
 
     actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
-    actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': outer_vid})
+    actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid',
+                    'value': outer_vid})
 
     actions.append({'type': 'OUTPUT', 'port': out_port})
 
@@ -285,7 +304,8 @@ def flow_egress_vxlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, vni
     return flows
 
 
-def flow_transit_vlan(dpid, in_port, out_port, transit_vid=48, priority=2000):
+def flow_transit_vlan(dpid, in_port, out_port, transit_vid=48,
+                      priority=2000):
     """
     Creates a flow that will match 8100 VLAN and throw packet to out port.
 
@@ -381,7 +401,8 @@ def flow_transit_vxlan(dpid, in_port, out_port, priority=2000, vni=4242):
     ]
 
 
-def flows_connected_devices_with_vxlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, priority=2000,
+def flows_connected_devices_with_vxlan(dpid, in_port, out_port, outer_vid=46,
+                                       inner_vid=None, priority=2000,
                                        udp_port=5000, vni=4242):
     """
     Creates a flow that will match VxLAN id and throw packet to out port.
@@ -397,9 +418,11 @@ def flows_connected_devices_with_vxlan(dpid, in_port, out_port, outer_vid=46, in
     :return: (dict)
     """
 
-    flows = flow_ingress_vxlan(dpid, in_port, out_port, outer_vid, inner_vid, priority=priority, udp_port=udp_port,
+    flows = flow_ingress_vxlan(dpid, in_port, out_port, outer_vid, inner_vid,
+                               priority=priority, udp_port=udp_port,
                                vni=vni)
-    flows[0]['actions'].append({'type': 'GOTO_TABLE', 'table_id': POST_INGRESS_TABLE_ID})
+    flows[0]['actions'].append({'type': 'GOTO_TABLE',
+                                'table_id': POST_INGRESS_TABLE_ID})
 
     flows.insert(0, {
         'dpid': dpid,
@@ -425,7 +448,8 @@ def flows_connected_devices_with_vxlan(dpid, in_port, out_port, outer_vid=46, in
     return flows
 
 
-def flows_connected_devices_with_vlan(dpid, in_port, out_port, outer_vid=46, inner_vid=None, priority=2000):
+def flows_connected_devices_with_vlan(dpid, in_port, out_port, outer_vid=46,
+                                      inner_vid=None, priority=2000):
     """
     Creates a flow that will match VxLAN id and throw packet to out port.
 
@@ -438,8 +462,10 @@ def flows_connected_devices_with_vlan(dpid, in_port, out_port, outer_vid=46, inn
     :return: (dict)
     """
 
-    flows = flow_ingress_vlan(dpid, in_port, out_port, outer_vid, inner_vid, priority=priority)
-    flows[0]['actions'].append({'type': 'GOTO_TABLE', 'table_id': POST_INGRESS_TABLE_ID})
+    flows = flow_ingress_vlan(dpid, in_port, out_port, outer_vid, inner_vid,
+                              priority=priority)
+    flows[0]['actions'].append({'type': 'GOTO_TABLE',
+                                'table_id': POST_INGRESS_TABLE_ID})
 
     flows.insert(0, {
         'dpid': dpid,
@@ -459,8 +485,8 @@ def flows_connected_devices_with_vlan(dpid, in_port, out_port, outer_vid=46, inn
     return flows
 
 
-def flow_rtl(dpid, in_port, eth_dst='aa:bb:cc:dd:ee:ff', eth_type=2048, ip_proto=17, udp_dst_port=5000,
-             priority=2000):
+def flow_rtl(dpid, in_port, eth_dst='aa:bb:cc:dd:ee:ff', eth_type=2048,
+             ip_proto=17, udp_dst_port=5000, priority=2000):
     """
     Creates a flow that will match VxLAN id and throw packet to out port.
 

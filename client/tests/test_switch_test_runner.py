@@ -60,10 +60,13 @@ class TestSwitchTestRunner(unittest.TestCase):
 
         switch_test_runner.main(self.config)
 
-        self.assertEqual(model.Scenario.execute.call_count, self.names_count * self.packet_sizes_count)
-        self.assertEqual(generator.PlotlyReportGenerator.collect_data.call_count,
+        self.assertEqual(model.Scenario.execute.call_count,
                          self.names_count * self.packet_sizes_count)
-        self.assertEqual(generator.PlotlyReportGenerator.report.call_count, self.names_count)
+        self.assertEqual(
+            generator.PlotlyReportGenerator.collect_data.call_count,
+            self.names_count * self.packet_sizes_count)
+        self.assertEqual(generator.PlotlyReportGenerator.report.call_count,
+                         self.names_count)
 
     def test_main_wrong_scenario_name(self):
         self.config['names'] = ['test']
@@ -75,7 +78,8 @@ class TestSwitchTestRunner(unittest.TestCase):
         scenario = Mock(**attrs)
         switch_test_runner.get_scenarios = Mock(return_value=[scenario])
         report_generator = Mock()
-        switch_test_runner.get_report_generator = Mock(return_value=report_generator)
+        switch_test_runner.get_report_generator = Mock(
+            return_value=report_generator)
 
         switch_test_runner.main(self.config)
 
@@ -85,17 +89,21 @@ class TestSwitchTestRunner(unittest.TestCase):
                                    call.has_next_packet_size(),
                                    call.cleanup_switch()], any_order=False)
 
-        report_generator.assert_has_calls([call.collect_data(), call.report()], any_order=False)
+        report_generator.assert_has_calls([call.collect_data(),
+                                           call.report()], any_order=False)
 
         switch_test_runner.get_scenarios.assert_has_calls([call(self.config)])
-        switch_test_runner.get_report_generator.assert_has_calls([call(scenario)])
+        switch_test_runner.get_report_generator.assert_has_calls(
+            [call(scenario)])
 
     def test_tester_calls_with_generator(self):
         scenario_timestamp = model.ScenarioTimestamps()
         scenario_timestamp.start = 1
         scenario_timestamp.stop = 2
-        attrs = {'has_next_packet_size.side_effect': [True, False], 'environment.reports': 'plotly',
-                 'time_metrics': [scenario_timestamp], 'get_current_packet_size_idx.return_value': 0}
+        attrs = {'has_next_packet_size.side_effect': [True, False],
+                 'environment.reports': 'plotly',
+                 'time_metrics': [scenario_timestamp],
+                 'get_current_packet_size_idx.return_value': 0}
         scenario = Mock(**attrs)
         switch_test_runner.get_scenarios = Mock(return_value=[scenario])
         generator.PlotlyReportGenerator.get_points = Mock()

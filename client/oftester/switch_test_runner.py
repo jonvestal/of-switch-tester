@@ -64,7 +64,8 @@ def get_report_generator(scenario):
 def main(config=None):
     if not config:
         logging.basicConfig(
-            format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
+            format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:'
+                   '%(levelname)s:%(process)d:%(message)s',
             level=logging.INFO
         )
         config = get_args()

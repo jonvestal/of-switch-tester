@@ -16,7 +16,8 @@ def make_base64(data):
     :param data: string of Hex
     :return: base64 encoded string
     """
-    return codecs.encode(codecs.decode(data, 'hex'), 'base64').decode('utf-8').replace('\n', '')
+    return codecs.encode(
+        codecs.decode(data, 'hex'), 'base64').decode('utf-8').replace('\n', '')
 
 
 def make_experimenter_action(data, data_type='base64'):
@@ -36,7 +37,8 @@ def make_experimenter_action(data, data_type='base64'):
     }
 
 
-def action_payload_vxlan_push(src_ip=None, dst_ip=None, src_mac=None, dst_mac=None, udp_port=0, vni=0, flags=0x01):
+def action_payload_vxlan_push(src_ip=None, dst_ip=None, src_mac=None,
+                              dst_mac=None, udp_port=0, vni=0, flags=0x01):
     """
     Returns an RYU action that will create a vxlan_push action for Noviflow.
         novi_action_type: 0x0002
@@ -52,8 +54,10 @@ def action_payload_vxlan_push(src_ip=None, dst_ip=None, src_mac=None, dst_mac=No
     :param flags: hex value with 0x00 meaning tunnel data not present
     :param src_ip: source ip address in dotted quad notation as a string
     :param dst_ip: destination ip address in dotted quad notation as a string
-    :param src_mac: source mac address as a string of hex (no : or - with leading 0's)
-    :param dst_mac: destination mac address as a string of hex (no : or - with leading 0's)
+    :param src_mac: source mac address as a string of hex (no : or -
+    with leading 0's)
+    :param dst_mac: destination mac address as a string of hex (no : or -
+    with leading 0's)
     :param udp_port: integer with maximum value of 65536
     :param vni: integer with maximum value of 4294967295
     :return: String
@@ -67,16 +71,15 @@ def action_payload_vxlan_push(src_ip=None, dst_ip=None, src_mac=None, dst_mac=No
 
         if vni < 0 or vni > 4294967295:
             raise ValueError("VIN needs to be between 0 and 429467295")
-        return make_base64("{}{}{}{}{}{}{}{}{}{}{}".format(NOVIFLOW_CUSTOMER, NOVIFLOW_RESERVE,
-                                                           action_type, tunnel_type, "01",
-                                                           src_mac, dst_mac,
-                                                           socket.inet_aton(src_ip).hex(),
-                                                           socket.inet_aton(dst_ip).hex(),
-                                                           "{:0{}x}".format(udp_port, 8),
-                                                           "{:0{}x}".format(vni, 16)))
+        return make_base64("{}{}{}{}{}{}{}{}{}{}{}".format(
+            NOVIFLOW_CUSTOMER, NOVIFLOW_RESERVE, action_type, tunnel_type,
+            "01", src_mac, dst_mac, socket.inet_aton(src_ip).hex(),
+            socket.inet_aton(dst_ip).hex(), "{:0{}x}".format(udp_port, 8),
+            "{:0{}x}".format(vni, 16)))
     else:
         return make_base64("{}{}{}{}{}000000"
-                           .format(NOVIFLOW_CUSTOMER, NOVIFLOW_RESERVE, action_type, tunnel_type, "00"))
+                           .format(NOVIFLOW_CUSTOMER, NOVIFLOW_RESERVE,
+                                   action_type, tunnel_type, "00"))
 
 
 def action_payload_vxlan_pop():
@@ -93,5 +96,5 @@ def action_payload_vxlan_pop():
     tunnel_type = '00'
     pad = '000000'
 
-    return make_base64("{}{}{}{}{}".format(NOVIFLOW_CUSTOMER, NOVIFLOW_RESERVE, action_type, tunnel_type, pad))
-
+    return make_base64("{}{}{}{}{}".format(NOVIFLOW_CUSTOMER, NOVIFLOW_RESERVE,
+                                           action_type, tunnel_type, pad))

@@ -66,6 +66,12 @@ IP_SRC = '1.1.1.1'
 IP_DST = '2.2.2.2'
 IP_PROTO = inet.IPPROTO_UDP
 
+###  Development
+
+- Before submitting PR's run `go.sh lint` to verify that code formatted 
+properly
+
+
 ### Run Scenarios
 - Setup python virtual environment if using (yes Kevin this if for you):
 
