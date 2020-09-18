@@ -28,9 +28,10 @@ pipeline_tester_instance_name = "PipelineTesterInstance"
 
 
 def make_packet(pkt_size, outer_vlan=0, inner_vlan=0, vni=0,
-                eth_src=None, eth_dst=None, udp_src_port=None, udp_dst_port=None, eth_type=None,
+                eth_src=None, eth_dst=None, udp_src_port=None,
+                udp_dst_port=None, eth_type=None,
                 ip_src=None, ip_dst=None, ip_proto=None):
-    
+
     ip_src = IP_SRC if ip_src is None else ip_src
     ip_dst = IP_DST if ip_dst is None else ip_dst
     ip_proto = IP_PROTO if ip_proto is None else ip_proto
@@ -43,7 +44,8 @@ def make_packet(pkt_size, outer_vlan=0, inner_vlan=0, vni=0,
     if outer_vlan or inner_vlan:
         eth_type = ether.ETH_TYPE_8021Q
     e = ethernet.ethernet(eth_dst, eth_src, eth_type)
-    i = ipv4.ipv4(total_length=0, src=ip_src, dst=ip_dst, proto=ip_proto, ttl=1)
+    i = ipv4.ipv4(total_length=0, src=ip_src, dst=ip_dst, proto=ip_proto,
+                  ttl=1)
     if vni:
         udp_dst_port = 4789
     u = udp.udp(src_port=udp_src_port, dst_port=udp_dst_port)
@@ -51,13 +53,15 @@ def make_packet(pkt_size, outer_vlan=0, inner_vlan=0, vni=0,
     outer_len = 0
     outer_tag = None
     if outer_vlan:
-        outer_tag = vlan.vlan(vid=outer_vlan, ethertype=ether.ETH_TYPE_8021Q, cfi=1)
+        outer_tag = vlan.vlan(vid=outer_vlan, ethertype=ether.ETH_TYPE_8021Q,
+                              cfi=1)
         outer_len = len(outer_tag)
 
     inner_len = 0
     inner_tag = None
     if inner_vlan:
-        inner_tag = vlan.vlan(vid=inner_vlan, ethertype=ether.ETH_TYPE_8021Q, cfi=1)
+        inner_tag = vlan.vlan(vid=inner_vlan, ethertype=ether.ETH_TYPE_8021Q,
+                              cfi=1)
         inner_len = len(inner_tag)
     vxlan_len = 0
     vxlan_tag = None
@@ -65,7 +69,8 @@ def make_packet(pkt_size, outer_vlan=0, inner_vlan=0, vni=0,
         vxlan_tag = vxlan.vxlan(vni)
         vxlan_len = len(vxlan_tag)
 
-    payload_size = pkt_size - (len(e) + len(i) + len(u) + inner_len + outer_len + vxlan_len)
+    payload_size = pkt_size - (len(e) + len(i) + len(u)
+                               + inner_len + outer_len + vxlan_len)
     payload = bytearray(payload_size if payload_size > 0 else 0)
 
     p = packet.Packet()
@@ -93,7 +98,8 @@ class TpnRyuUtils(app_manager.RyuApp):
         super(TpnRyuUtils, self).__init__(*args, **kwargs)
         self.dpset = kwargs['dpset']
         wsgi = kwargs['wsgi']
-        wsgi.register(PipelineTesterController, {pipeline_tester_instance_name: self})
+        wsgi.register(PipelineTesterController,
+                      {pipeline_tester_instance_name: self})
 
     def send_packet(self, dpid, pkt, port):
         dp = self.dpset.get(dpid)
@@ -108,7 +114,8 @@ class TpnRyuUtils(app_manager.RyuApp):
                                       data=pkt)
         dp.send_msg(req)
 
-    @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
+    @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER,
+                                                DEAD_DISPATCHER])
     def state_change_event_handler(self, ev):
         datapath = ev.datapath
         if ev.state == MAIN_DISPATCHER:
@@ -116,13 +123,16 @@ class TpnRyuUtils(app_manager.RyuApp):
         elif ev.state == DEAD_DISPATCHER:
             self.logger.info('unregister datapath: %016x', datapath.id)
         else:
-            self.logger.error("Somehow %016x unregistered with us but was never registered", datapath.id)
+            self.logger.error(
+                "Somehow %016x unregistered with us but was never registered",
+                datapath.id)
 
 
 class PipelineTesterController(ControllerBase):
 
     def __init__(self, req, link, data, **config):
-        super(PipelineTesterController, self).__init__(req, link, data, **config)
+        super(PipelineTesterController, self).__init__(req, link, data,
+                                                       **config)
         self.pipeline_tester_app = data[pipeline_tester_instance_name]
 
     @route('tester', '/tpn/packet_out/{switchid}', methods=['POST'])

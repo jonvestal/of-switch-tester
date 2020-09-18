@@ -12,7 +12,8 @@ vin = 1
 
 
 def test_make_base64():
-    assert base64.b64decode(novi.make_base64("ff000002ff00")).hex() == "ff000002ff00"
+    assert base64.b64decode(novi.make_base64("ff000002ff00"))\
+               .hex() == "ff000002ff00"
 
 
 def test_make_experimenter():
@@ -25,7 +26,8 @@ def test_make_experimenter():
 
 
 def test_action_payload_vxlan_push():
-    action = novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vin)
+    action = novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac,
+                                            dst_mac, udp_port, vin)
     s = base64.b64decode(action)
     assert s[:6].hex() == 'ff0000020001'
     assert s[6:12].hex() == src_mac
@@ -40,9 +42,11 @@ def test_action_payload_vxlan_push():
     (src_ip, dst_ip, src_mac, dst_mac, 100000, vin),
     (src_ip, dst_ip, src_mac, dst_mac, udp_port, -1)
 ])
-def test_exception_on_values_vxlan(src_ip, dst_ip, src_mac, dst_mac, udp_port, vin):
+def test_exception_on_values_vxlan(src_ip, dst_ip, src_mac, dst_mac,
+                                   udp_port, vin):
     with pytest.raises(ValueError):
-        novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac, udp_port, vin)
+        novi.action_payload_vxlan_push(src_ip, dst_ip, src_mac, dst_mac,
+                                       udp_port, vin)
 
 
 def test_action_payload_vxlan_push_multi():
@@ -55,9 +59,3 @@ def test_action_payload_vxlan_pop():
     action = novi.action_payload_vxlan_pop()
     s = base64.b64decode(action)
     assert s.hex() == 'ff00000300000000'
-
-
-
-
-
-

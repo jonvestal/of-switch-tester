@@ -22,7 +22,8 @@ class RyuToOpentsdb(app_manager.RyuApp):
         self.metrics = potsdb.Client(os.getenv('OTSDB_HOST', 'opentsdb'))
         self.metric_prefix = os.getenv('OTSDB_METRIC_PREFIX', 'oftester')
 
-    @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
+    @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER,
+                                                DEAD_DISPATCHER])
     def state_change_event_handler(self, ev):
         datapath = ev.datapath
         if ev.state == MAIN_DISPATCHER:
@@ -34,9 +35,11 @@ class RyuToOpentsdb(app_manager.RyuApp):
                 self.logger.info('unregister datapath: %016x', datapath.id)
                 del self.datapaths[datapath.id]
             else:
-                self.logger.error("Somehow %016x unregistered with us but was never registered", datapath.id)
+                self.logger.error("Somehow %016x unregistered with us but was"
+                                  " never registered", datapath.id)
         else:
-            self.logger.error("This shouldn't have happened as not capturing %s", ev.state)
+            self.logger.error(
+                "This shouldn't have happened as not capturing %s", ev.state)
 
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def flow_stats_reply_handler(self, ev):

@@ -34,7 +34,8 @@ def group_output_in_two_ports(dpid, first_out_port, second_out_port):
     }
 
 
-def group_rtl(dpid, first_out_port, second_out_port, mac='aa:bb:cc:dd:ee:ff', udp_port=5000):
+def group_rtl(dpid, first_out_port, second_out_port,
+              mac='aa:bb:cc:dd:ee:ff', udp_port=5000):
     """
     Group that sends packet to ports.
 

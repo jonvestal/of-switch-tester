@@ -1,6 +1,19 @@
 import copy
 
-from oftester.constants import *
+from oftester.constants import COOKIE_COPY_FIELDS
+from oftester.constants import COOKIE_GOTO_TABLE
+from oftester.constants import COOKIE_LOOP
+from oftester.constants import COOKIE_METADATA
+from oftester.constants import COOKIE_METADATA_OUT
+from oftester.constants import COOKIE_MULTICAST_GOTO_TABLE
+from oftester.constants import COOKIE_MULTICAST_GROUP
+from oftester.constants import COOKIE_PASS_THROUGH
+from oftester.constants import COOKIE_SNAKE
+from oftester.constants import COOKIE_SWAP_FIELDS
+from oftester.constants import COOKIE_VLAN
+from oftester.constants import COOKIE_VXLAN
+from oftester.constants import GROUP_ID
+from oftester.constants import OFPP_IN_PORT
 
 
 def flow_loop_all_ports(dpid, table_id, priority=1):
@@ -98,8 +111,9 @@ def pass_through_flow(dpid, in_port, out_port, priority=1000):
 
 def flow_snake(dpid, start_port, end_port, table_id, priority=1000):
     """
-    Sets up a snake through the switch.  Assumes that ports are connected in pairs of odd + 1, for example
-    port 3 physical connected to port 4, 5 to 6, etc.  First port sends to last port and last port sends
+    Sets up a snake through the switch.  Assumes that ports are connected
+    in pairs of odd + 1, for example port 3 physical connected to port 4, 5
+    to 6, etc.  First port sends to last port and last port sends
     to first port.
 
     :param dpid: Switch DPID
@@ -150,15 +164,17 @@ def flow_snake(dpid, start_port, end_port, table_id, priority=1000):
     return flowmods
 
 
-def flow_vlan_push_pop(dpid, in_port, out_port, action, outer_vid=None, inner_vid=None, table_id=0, priority=2000):
+def flow_vlan_push_pop(dpid, in_port, out_port, action, outer_vid=None,
+                       inner_vid=None, table_id=0, priority=2000):
     """
-    Creates a flow that will either push an 8100 VLAN and push new 8100 VLAN if outer_vid is not None
-    or pop an 8100 VLAN.
+    Creates a flow that will either push an 8100 VLAN and push new 8100 VLAN if
+    outer_vid is not None or pop an 8100 VLAN.
 
     :param dpid: Switch DPID
     :param in_port: (int) port to match for incoming packets
     :param out_port: (out) port to send packet out
-    :param action: (string) PUSH/POP if PUSH will add header, POP removes header
+    :param action: (string) PUSH/POP if PUSH will add header, POP removes
+    header
     :param outer_vid: (int) outer vlan id for QnQ
     :param inner_vid: (int) vlan id if not set will not push a vlan
     :param table_id: (int) table to put the flow into
@@ -172,12 +188,14 @@ def flow_vlan_push_pop(dpid, in_port, out_port, action, outer_vid=None, inner_vi
     if action == 'push':
         actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
         if inner_vid is not None:
-            actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': inner_vid})
+            actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid',
+                            'value': inner_vid})
 
         if outer_vid is not None:
             if inner_vid:
                 actions.append({'type': 'PUSH_VLAN', 'ethertype': 33024})
-            actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid', 'value': outer_vid})
+            actions.append({'type': 'SET_FIELD', 'field': 'vlan_vid',
+                            'value': outer_vid})
 
     else:
         actions.append({'type': 'POP_VLAN'})
@@ -215,16 +233,23 @@ def flow_vxlan_push(dpid, in_port, out_port, table_id=0, priority=2000,
     """
     actions = []
     if flags:
-        actions.append({'type': 'NOVI_PUSH_VXLAN', 'eth_src': src_mac, 'eth_dst': dst_mac,
-                        'ipv4_src': src_ip, 'ipv4_dst': dst_ip, 'udp_src': udp_port, 'vni': vni})
+        actions.append({'type': 'NOVI_PUSH_VXLAN', 'eth_src': src_mac,
+                        'eth_dst': dst_mac, 'ipv4_src': src_ip,
+                        'ipv4_dst': dst_ip, 'udp_src': udp_port, 'vni': vni})
     else:
         actions.append({'type': 'NOVI_PUSH_VXLAN'})
-        actions.append({'type': 'SET_FIELD', 'field': 'eth_src', 'value': src_mac})
-        actions.append({'type': 'SET_FIELD', 'field': 'eth_dst', 'value': dst_mac})
-        actions.append({'type': 'SET_FIELD', 'field': 'ipv4_src', 'value': src_ip})
-        actions.append({'type': 'SET_FIELD', 'field': 'ipv4_dst', 'value': dst_ip})
-        actions.append({'type': 'SET_FIELD', 'field': 'udp_src', 'value': udp_port})
-        actions.append({'type': 'SET_FIELD', 'field': 'tunnel_id', 'value': vni})
+        actions.append({'type': 'SET_FIELD',
+                        'field': 'eth_src', 'value': src_mac})
+        actions.append({'type': 'SET_FIELD',
+                        'field': 'eth_dst', 'value': dst_mac})
+        actions.append({'type': 'SET_FIELD',
+                        'field': 'ipv4_src', 'value': src_ip})
+        actions.append({'type': 'SET_FIELD',
+                        'field': 'ipv4_dst', 'value': dst_ip})
+        actions.append({'type': 'SET_FIELD',
+                        'field': 'udp_src', 'value': udp_port})
+        actions.append({'type': 'SET_FIELD',
+                        'field': 'tunnel_id', 'value': vni})
     actions.append({
         'type': 'OUTPUT',
         'port': out_port
@@ -264,7 +289,8 @@ def flow_vxlan_pop(dpid, in_port, out_port, table_id=0, priority=2000):
     }
 
 
-def flow_swap_fields(dpid, in_port, out_port, table_id=0, priority=2000, src='eth_src', dst='eth_dst',
+def flow_swap_fields(dpid, in_port, out_port, table_id=0, priority=2000,
+                     src='eth_src', dst='eth_dst',
                      src_offset=0, dst_offset=0, n_bits=48):
     """
     Create a swap fields flow.
@@ -275,7 +301,8 @@ def flow_swap_fields(dpid, in_port, out_port, table_id=0, priority=2000, src='et
     :param table_id: (int) table to put flow into
     :param priority: (int) priority of the flow
     :param src: (string) source field name, including novi experementer oxm's
-    :param dst: (string) destination field name, including novi experementer oxm's
+    :param dst: (string) destination field name, including novi
+    experementer oxm's
     :param src_offset: (int) source field offset
     :param dst_offset: (int) destination field offset
     :param n_bits: (int) bits to swap
@@ -302,7 +329,8 @@ def flow_swap_fields(dpid, in_port, out_port, table_id=0, priority=2000, src='et
     }
 
 
-def flow_copy_fields(dpid, in_port, out_port, table_id=0, priority=2000, src='eth_src', dst='eth_dst',
+def flow_copy_fields(dpid, in_port, out_port, table_id=0, priority=2000,
+                     src='eth_src', dst='eth_dst',
                      src_offset=0, dst_offset=0, n_bits=48):
     """
     Create a copy fields flow.
@@ -313,7 +341,8 @@ def flow_copy_fields(dpid, in_port, out_port, table_id=0, priority=2000, src='et
     :param table_id: (int) table to put flow into
     :param priority: (int) priority of the flow
     :param src: (string) source field name, including novi experementer oxm's
-    :param dst: (string) destination field name, including novi experementer oxm's
+    :param dst: (string) destination field name, including novi
+     experementer oxm's
     :param src_offset: (int) source field offset
     :param dst_offset: (int) destination field offset
     :param n_bits: (int) bits to copy
@@ -340,7 +369,8 @@ def flow_copy_fields(dpid, in_port, out_port, table_id=0, priority=2000, src='et
     }
 
 
-def flow_set_fields(dpid, in_port, out_port, table_id=0, priority=2000, values=None):
+def flow_set_fields(dpid, in_port, out_port, table_id=0, priority=2000,
+                    values=None):
     """
     Create a flow with set fields.
 
@@ -369,7 +399,8 @@ def flow_set_fields(dpid, in_port, out_port, table_id=0, priority=2000, values=N
     }
 
 
-def multicast_goto_table_flows(dpid, in_port, out_port, table_id=0, dst_table=1, priority=2000):
+def multicast_goto_table_flows(dpid, in_port, out_port, table_id=0,
+                               dst_table=1, priority=2000):
     """
     Flows that sends packet to another table and port
 
