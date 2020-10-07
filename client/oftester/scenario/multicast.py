@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from oftester.constants import OFPP_IN_PORT
 from oftester.openflow import basic_flows
@@ -14,6 +15,8 @@ class ConnectedDevicesVxlanScenario(Scenario):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size(),
                                      outer_vlan=46, inner_vlan=47)
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info(
                 'Switch under full load adding connected_devices_vxlan rules')
             for flow in pipeline_flows.flow_egress_vxlan(
@@ -34,6 +37,8 @@ class ConnectedDevicesVlanScenario(Scenario):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size(),
                                      outer_vlan=46, inner_vlan=47)
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info(
                 'Switch under full load adding connected_devices_vlan rules')
             for flow in pipeline_flows.flow_egress_vlan(
@@ -57,6 +62,8 @@ class RtlScenario(Scenario):
             self.prepare_snake_flows(sw.dpid, self.current_packet_size(),
                                      eth_dst=eth_dst, eth_type=eth_type,
                                      ip_proto=ip_proto, udp_dst_port=udp_dst)
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info('Switch under full load adding rtl rules')
             group = groups.group_rtl(sw.dpid, sw.snake_end_port - 2,
                                      sw.snake_end_port, mac=eth_dst,

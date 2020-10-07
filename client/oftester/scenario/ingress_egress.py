@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from oftester.constants import OFPP_IN_PORT
 from oftester.openflow import pipeline_flows
@@ -11,6 +12,8 @@ class IngressEgressQnqVlanScenario(Scenario):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size(),
                                      outer_vlan=46, inner_vlan=47)
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info(
                 'Switch under full load adding ingress_egress_qnq_vlan rules')
             for flow in pipeline_flows.flow_egress_vlan(
@@ -28,6 +31,8 @@ class IngressEgressVlanScenario(Scenario):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size(),
                                      outer_vlan=46)
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info(
                 'Switch under full load adding ingress_egress_vlan rules')
             for flow in pipeline_flows.flow_egress_vlan(
@@ -46,6 +51,8 @@ class IngressEgressQnqVxlanScenario(Scenario):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size(),
                                      outer_vlan=46, inner_vlan=47)
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info(
                 'Switch under full load adding ingress_egress_qnq_vxlan rules')
             for flow in pipeline_flows.flow_egress_vxlan(
@@ -63,6 +70,8 @@ class IngressEgressVxlanScenario(Scenario):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size(),
                                      outer_vlan=46)
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info(
                 'Switch under full load adding ingress_egress_vxlan rules')
             for flow in pipeline_flows.flow_egress_vxlan(

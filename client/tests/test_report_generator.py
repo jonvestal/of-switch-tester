@@ -76,6 +76,7 @@ class TestReportGenerator(unittest.TestCase):
         # given
         scenario_timestamp = model.ScenarioTimestamps()
         scenario_timestamp.start = datetime.utcnow()
+        scenario_timestamp.timestamps = dict()
         scenario_timestamp.stop = datetime.utcnow()
         scenario_attrs = {'time_metrics': [scenario_timestamp],
                           'get_current_packet_size_idx.return_value': 0,
@@ -87,7 +88,7 @@ class TestReportGenerator(unittest.TestCase):
         type(scenario).name = PropertyMock(return_value='test')
         report_generator = generator.PlotlyReportGenerator(scenario)
         get_attrs = {'status_code': 200,
-                     'json.return_value': {'test': 'test'}}
+                     'json.return_value': [{'test': 'test'}]}
         requests.get = Mock(return_value=Mock(**get_attrs))
 
         # when
@@ -99,16 +100,18 @@ class TestReportGenerator(unittest.TestCase):
         requests.get.assert_called_once()
 
         self.assertEqual(report_generator.collected_data,
-                         {9000: {'test': 'test'}})
+                         {9000: [{'test': 'test', 'timestamps': {}}]})
 
     def test_report_plotly(self):
         # given
-        scenario_attrs = {'packet_sizes': [0, 1, 2]}
+        scenario_attrs = {'packet_sizes': [0, 1, 2],
+                          'collection_interval': 30}
         scenario = Mock(**scenario_attrs)
         type(scenario).name = PropertyMock(return_value='test')
         report_generator = generator.PlotlyReportGenerator(scenario)
         report_generator.collected_data = {9000: [{'dps': {'1600411713': 1},
-                                                   'metric': 'metric'}]}
+                                                   'metric': 'metric',
+                                                   'timestamps': {}}]}
         fig = Mock(**{'to_html.return_value': 'test'})
         m_subplots = Mock(return_value=fig)
         template = Mock()
@@ -134,6 +137,13 @@ class TestReportGenerator(unittest.TestCase):
 
         report_generator.env.get_template.assert_has_calls(
             [call('plotly_index.html')])
+        m_open.assert_has_calls(
+            [call('./reports/test.json', 'wb'),
+             call().__enter__(),
+             call().write(b'{"9000": [{"dps": {"1600411713": 1}, '
+                          b'"metric": "metric", '
+                          b'"timestamps": {}}]}'),
+             call().__exit__(None, None, None)])
         template.assert_has_calls(
             [call.stream(name='test', figures=['test']),
              call.stream().dump('./reports/test-plotly.html')])
@@ -142,6 +152,7 @@ class TestReportGenerator(unittest.TestCase):
         # given
         scenario_timestamp = model.ScenarioTimestamps()
         scenario_timestamp.start = datetime.utcnow()
+        scenario_timestamp.timestamps = dict()
         scenario_timestamp.stop = datetime.utcnow()
         scenario_attrs = {'time_metrics': [scenario_timestamp],
                           'get_current_packet_size_idx.return_value': 0,
@@ -153,7 +164,7 @@ class TestReportGenerator(unittest.TestCase):
         type(scenario).name = PropertyMock(return_value='test')
         report_generator = generator.PlotlyAggregatedReportGenerator(scenario)
         get_attrs = {'status_code': 200,
-                     'json.return_value': {'test': 'test'}}
+                     'json.return_value': [{'test': 'test'}]}
         requests.get = Mock(return_value=Mock(**get_attrs))
 
         # when
@@ -165,17 +176,19 @@ class TestReportGenerator(unittest.TestCase):
         requests.get.assert_called_once()
 
         self.assertEqual(report_generator.collected_data,
-                         {9000: {'test': 'test'}})
+                         {9000: [{'test': 'test', 'timestamps': {}}]})
 
     def test_report_plotly_aggr(self):
         # given
         scenario_attrs = {'packet_sizes': [0, 1, 2],
-                          'environment.otsdb_prefix': 'otsdb_prefix'}
+                          'environment.otsdb_prefix': 'otsdb_prefix',
+                          'collection_interval': 30}
         scenario = Mock(**scenario_attrs)
         type(scenario).name = PropertyMock(return_value='test')
         report_generator = generator.PlotlyAggregatedReportGenerator(scenario)
         report_generator.collected_data = {9000: [{'dps': {'1600411713': 1},
-                                                   'metric': 'metric'}]}
+                                                   'metric': 'metric',
+                                                   'timestamps': {}}]}
         fig = Mock(**{'to_html.return_value': 'test'})
         m_subplots = Mock(return_value=fig)
         template = Mock()
@@ -209,6 +222,13 @@ class TestReportGenerator(unittest.TestCase):
         report_generator.env.get_template.assert_has_calls(
             [call('plotly_index.html'),
              call('plotly_index.html')])
+        m_open.assert_has_calls(
+            [call('./reports/test.json', 'wb'),
+             call().__enter__(),
+             call().write(b'{"9000": [{"dps": {"1600411713": 1}, '
+                          b'"metric": "metric", '
+                          b'"timestamps": {}}]}'),
+             call().__exit__(None, None, None)])
         template.assert_has_calls(
             [call.stream(name='test', figures=['test']),
              call.stream().dump('./reports/test-plotly.html'),
