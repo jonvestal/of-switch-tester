@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from oftester.constants import OFPP_IN_PORT
 from oftester.openflow import basic_flows as flows
@@ -9,6 +10,8 @@ from oftester.scenario.model import Scenario
 class PpsScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
             logging.info('Switch under full load adding push/pop rules')
 
@@ -17,6 +20,8 @@ class VlanScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info('Switch under full load adding push/pop rules')
 
             self.add_flow(flows.flow_vlan_push_pop(sw.dpid,
@@ -32,6 +37,8 @@ class VlanScenarioShort(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info('Switch under full load adding push/pop rules')
             self.add_flow(flows.flow_vlan_push_pop(sw.dpid, sw.snake_end_port,
                                                    OFPP_IN_PORT, 'pop'))
@@ -45,6 +52,8 @@ class VxlanScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info('Switch under full load adding push/pop vxlan rules')
 
             self.add_flow(flows.flow_vxlan_pop(sw.dpid, sw.snake_end_port,
@@ -58,6 +67,8 @@ class VxlanScenarioShort(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
 
             logging.info('Switch under full load adding push/pop vxlan rules')
             self.add_flow(flows.flow_vxlan_pop(sw.dpid, sw.snake_end_port,
@@ -70,6 +81,8 @@ class SwapScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info('Switch under full load adding swap fields rules')
             self.add_flow(flows.pass_through_flow(sw.dpid, sw.snake_end_port,
                                                   OFPP_IN_PORT))
@@ -81,6 +94,8 @@ class CopyScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info('Switch under full load adding copy fields rules')
             self.add_flow(flows.pass_through_flow(sw.dpid, sw.snake_end_port,
                                                   OFPP_IN_PORT))
@@ -92,6 +107,8 @@ class RxTimestampScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info(
                 'Switch under full load adding rx_timestamp fields rules')
             self.add_flow(flows.pass_through_flow(sw.dpid, sw.snake_end_port,
@@ -107,6 +124,8 @@ class TxTimestampScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info(
                 'Switch under full load adding tx_timestamp fields rules')
             self.add_flow(flows.pass_through_flow(sw.dpid, sw.snake_end_port,
@@ -120,6 +139,8 @@ class MetadataScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info('Switch under full load adding metadata_write rules')
             self.add_flow(flows.pass_through_flow(sw.dpid,
                                                   sw.snake_end_port,
@@ -134,6 +155,8 @@ class MulticastGotoTableScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info(
                 'Switch under full load adding multicast_goto_table rules')
             self.add_flow(flows.pass_through_flow(sw.dpid, sw.snake_end_port,
@@ -148,6 +171,8 @@ class MulticastGroupScenario(Scenario):
     def run(self):
         for sw in self.environment.switches.values():
             self.prepare_snake_flows(sw.dpid, self.current_packet_size())
+            timestamp = int(datetime.now().timestamp())
+            self.time_metrics[-1].timestamps[timestamp] = "start"
             logging.info('Switch under full load adding multicast_group rules')
             group = groups.group_output_in_two_ports(sw.dpid,
                                                      sw.snake_end_port - 2,

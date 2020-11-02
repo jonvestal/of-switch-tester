@@ -84,6 +84,7 @@ class Scenario:
     def next_packet_size(self):
         self.current_packet_idx += 1
         self.time_metrics.append(ScenarioTimestamps())
+        self.time_metrics[-1].timestamps = dict()
         self.packet_size = self.current_packet_size()
 
     def reset_packet_size(self):
@@ -104,6 +105,8 @@ class Scenario:
         logging.info('Collecting data for %s with size %i for %i seconds',
                      self.name, size, self.collection_interval)
         time.sleep(self.collection_interval)
+        self.time_metrics[-1].timestamps[int(datetime.now().timestamp())] = \
+            self.name
         self.time_metrics[-1].stop = datetime.utcnow()
         self.cleanup_switch()
 

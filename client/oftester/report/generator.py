@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os
 from abc import abstractmethod, ABC
@@ -66,6 +67,7 @@ class PlotlyReportGenerator(ReportGenerator):
         self.collected_data = dict()
 
     def report(self):
+        self.save_collected_data()
         figures = []
         for packet_size in self.collected_data:
             fig = self.make_figure(packet_size,
@@ -80,13 +82,19 @@ class PlotlyReportGenerator(ReportGenerator):
         logging.info("Report for %s scenario has been created",
                      self.scenario.name)
 
+    def save_collected_data(self):
+        with open(base_dir + '/%s.json' % self.scenario.name, "wb") as f:
+            f.write(json.dumps(self.collected_data).encode())
+
     def collect_data(self):
         time_metrics = self.scenario.time_metrics[
             self.scenario.get_current_packet_size_idx()]
-        self.get_points(time_metrics.start, time_metrics.stop,
-                        self.scenario.current_packet_size())
+        self.get_points(time_metrics, self.scenario.current_packet_size())
 
-    def get_points(self, start, stop, packet_size):
+    def get_points(self, time_metrics, packet_size):
+        start = time_metrics.start
+        stop = time_metrics.stop
+
         fmt = "%Y/%m/%d-%H:%M:%S"
 
         url = "http://{0}:{1}/api/query?start={2}&end={3}" \
@@ -99,7 +107,10 @@ class PlotlyReportGenerator(ReportGenerator):
                       self.scenario.environment.otsdb_prefix)
         resp = requests.get(url)
         if resp.status_code == 200:
-            self.collected_data[packet_size] = resp.json()
+            data = resp.json()
+            for d in data:
+                d['timestamps'] = time_metrics.timestamps
+            self.collected_data[packet_size] = data
             logging.info("Stored data for packet size: %i", packet_size)
 
     @staticmethod
