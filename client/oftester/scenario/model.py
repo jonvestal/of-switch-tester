@@ -63,7 +63,7 @@ class ScenarioTimestamps:
 class Scenario:
 
     def __init__(self, name, environment, packet_sizes=None,
-                 collection_interval=120):
+                 collection_interval=120, sleep_after_peak_load=30):
         self.name = name
         if not packet_sizes:
             packet_sizes = [9000]
@@ -71,6 +71,7 @@ class Scenario:
         self.packet_size = self.packet_sizes[0]
         self.current_packet_idx = -1
         self.collection_interval = collection_interval
+        self.sleep_after_peak_load = sleep_after_peak_load
         self.environment = Environment(**environment)
         self.session = requests.Session()
         self.time_metrics = []
@@ -197,17 +198,17 @@ class Scenario:
         logging.debug('Sending %i packet out to port %i of size %i',
                       count, port, pkt_size)
 
-    def switch_at_peak_load(self):
-        logging.debug('Checking if switch at peak load')
+    def switch_at_peak_load(self, dpid):
+        logging.debug('Checking if switch %s at peak load', dpid)
         url = 'http://{}:{}/api/query'.format(self.environment.otsdb_host,
                                               self.environment.otsdb_port)
-        payload = {'start': '30s-ago',
+        payload = {'start': '1m-ago',
                    'queries': [{'aggregator': 'sum',
                                 'metric': self.environment.otsdb_prefix
                                 + '.port.bits',
                                 'rate': 'true',
-                                'downsample': '10s-avg',
-                                'tags': {}
+                                'downsample': '20s-sum',
+                                'tags': {'dpid': dpid}
                                 }
                                ]
                    }
@@ -219,21 +220,15 @@ class Scenario:
             logging.error(
                 'Somehow we only received 1 datapoint from OpenTSDB, %s', dps)
             return False  # What the hell try again
-        curr = dps[-1][1]
         prev = dps[-2][1]
+        curr = dps[-1][1]
 
         # arbitrary number to make sure we have some packets moving
         if curr < 1000:
             return False
 
-        growth_rate = abs(curr - prev) / curr * 100
+        growth_rate = abs(curr - prev) / curr
         logging.debug('growth is %f', growth_rate)
-
-        if growth_rate == 0:
-            # Hack to deal with fact pushing packets every second but
-            # TSDB updated every minute
-            return False
-            # has the risk of never finishingress..
 
         return growth_rate < 0.05
 
@@ -241,9 +236,8 @@ class Scenario:
                                inner_vlan=0, vni=0,
                                eth_src=None, eth_dst=None, udp_src_port=None,
                                udp_dst_port=None, eth_type=None,
-                               ip_src=None, ip_dst=None, ip_proto=None,
-                               sleep=30):
-        logging.info('Bringing switch to full load')
+                               ip_src=None, ip_dst=None, ip_proto=None):
+        logging.info('Bringing switch %s to full load', dpid)
         done = False
         pkts_sent = 0
         while not done:
@@ -254,12 +248,12 @@ class Scenario:
             pkts_sent += 1
             logging.debug('Injected %i packets per port in total', pkts_sent)
             time.sleep(1)
-            done = self.switch_at_peak_load()
+            done = self.switch_at_peak_load(dpid)
         logging.info(
             'Injected %i packets with size of %i for port %i,'
             ' tired so gonna sleep for %i seconds',
-            pkts_sent, size, port, sleep)
-        time.sleep(sleep)
+            pkts_sent, size, port, self.sleep_after_peak_load)
+        time.sleep(self.sleep_after_peak_load)
 
     def prepare_snake_flows(self, dpid, size, outer_vlan=0, inner_vlan=0,
                             vni=0, eth_src=None, eth_dst=None,
