@@ -197,8 +197,8 @@ class Scenario:
         logging.debug('Sending %i packet out to port %i of size %i',
                       count, port, pkt_size)
 
-    def switch_at_peak_load(self):
-        logging.debug('Checking if switch at peak load')
+    def switch_at_peak_load(self, dpid):
+        logging.debug('Checking if switch("{}") at peak load'.format(dpid))
         url = 'http://{}:{}/api/query'.format(self.environment.otsdb_host,
                                               self.environment.otsdb_port)
         payload = {'start': '30s-ago',
@@ -207,7 +207,7 @@ class Scenario:
                                 + '.port.bits',
                                 'rate': 'true',
                                 'downsample': '10s-avg',
-                                'tags': {}
+                                'tags': {'dpid': dpid}
                                 }
                                ]
                    }
@@ -254,7 +254,7 @@ class Scenario:
             pkts_sent += 1
             logging.debug('Injected %i packets per port in total', pkts_sent)
             time.sleep(1)
-            done = self.switch_at_peak_load()
+            done = self.switch_at_peak_load(dpid)
         logging.info(
             'Injected %i packets with size of %i for port %i,'
             ' tired so gonna sleep for %i seconds',
