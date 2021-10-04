@@ -30,6 +30,10 @@ class ReportGenerator(ABC):
 
 
 class OtsdbReportGenerator(ReportGenerator):
+    def __init__(self, scenario):
+        super(OtsdbReportGenerator, self).__init__(scenario)
+        self.dpids = self.get_dpids_string(self.scenario.environment.switches.values())
+
     def report(self):
         template = self.env.get_template('otsdb_index.html')
         template.stream(name=self.scenario.name,
@@ -46,13 +50,15 @@ class OtsdbReportGenerator(ReportGenerator):
         fmt = "%Y/%m/%d-%H:%M:%S"
 
         url = "http://{0}:{1}/q?start={2}&end={3}" \
-              "&m=sum:rate:{4}.port.packets" \
-              "&o=&m=sum:rate:{4}.port.bits&o=axis%20x1y2&ylabel=y" \
-              "&yrange=[0:]&wxh=1833x760&style=linespoint&png" \
+              "&m=sum:rate:{4}.port.packets{{{5}}}&o=" \
+              "&m=sum:rate:{4}.port.bits{{{5}}}&o=axis%20x1y2" \
+              "&ylabel=y&yrange=[0:]&wxh=1833x760&style=linespoint&png" \
               .format(self.scenario.environment.otsdb_host,
                       self.scenario.environment.otsdb_port,
                       start.strftime(fmt), stop.strftime(fmt),
-                      self.scenario.environment.otsdb_prefix)
+                      self.scenario.environment.otsdb_prefix,
+                      self.dpids)
+        logging.info("Report data query: %s", url)
         resp = requests.get(url, stream=True)
         if resp.status_code == 200:
             with open(base_dir + '/%s_%d.png' % (self.scenario.name, idx),
@@ -60,8 +66,17 @@ class OtsdbReportGenerator(ReportGenerator):
                 for chunk in resp.iter_content(1024):
                     f.write(chunk)
 
+    @staticmethod
+    def get_dpids_string(switches):
+        dpids = ""
+        for sw in switches:
+            if dpids != "":
+                dpids += ","
+            dpids += "dpid={}".format(sw.dpid)
+        return dpids
 
-class PlotlyReportGenerator(ReportGenerator):
+
+class PlotlyReportGenerator(OtsdbReportGenerator):
     def __init__(self, scenario):
         super(PlotlyReportGenerator, self).__init__(scenario)
         self.collected_data = dict()
@@ -98,13 +113,15 @@ class PlotlyReportGenerator(ReportGenerator):
         fmt = "%Y/%m/%d-%H:%M:%S"
 
         url = "http://{0}:{1}/api/query?start={2}&end={3}" \
-              "&m=sum:rate:{4}.port.packets" \
-              "&o=&m=sum:rate:{4}.port.bits" \
+              "&m=sum:rate:{4}.port.packets{{{5}}}" \
+              "&o=&m=sum:rate:{4}.port.bits{{{5}}}" \
               "&o=axis%20x1y2&ylabel=y&yrange=[0:]" \
               .format(self.scenario.environment.otsdb_host,
                       self.scenario.environment.otsdb_port,
                       start.strftime(fmt), stop.strftime(fmt),
-                      self.scenario.environment.otsdb_prefix)
+                      self.scenario.environment.otsdb_prefix,
+                      self.dpids)
+        logging.info("Report data query: %s", url)
         resp = requests.get(url)
         if resp.status_code == 200:
             data = resp.json()
