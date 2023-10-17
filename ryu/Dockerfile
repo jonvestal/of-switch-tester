@@ -5,7 +5,7 @@ ENV RYU_PACKAGES "curl python3 py3-setuptools py3-pip py3-greenlet py3-lxml py3-
 RUN apk --update add apk-tools \
 	&& apk add ${RYU_PACKAGES} \
 	&& rm -rf /var/lib/apt/lists/* \
-	&& git clone https://github.com/timofei-durakov/ryu \
+	&& git clone https://github.com/niksv/ryu \
 	&& pip3 install --upgrade pip \
 	&& cd ryu \
 	&& git checkout novi_actions \
